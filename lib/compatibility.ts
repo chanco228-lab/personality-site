@@ -136,7 +136,7 @@ export function computeCompatibility(
   const raw = ns + ha + rd + p + sd + co;
   const coeffU = getRelationshipCoefficient(u.rd, u.p, u.co_rep, u.sd_rep);
   const coeffO = getRelationshipCoefficient(o.rd, o.p, o.co_rep, o.sd_rep);
-  const score = Math.floor(raw * coeffU * coeffO * 100 / MAX_RAW);
+  const score = Math.min(100, Math.floor(raw * coeffU * coeffO * 100 / MAX_RAW));
 
   // 注目度（midpointからの距離）が高い因子を優先してコメント3つ選ぶ
   const factors = [
