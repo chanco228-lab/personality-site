@@ -56,6 +56,22 @@ function calcCO(a: FactorLevel, b: FactorLevel): number {
 // 合計最高: 18+18+18+12+16+16 = 98 → 100点換算
 const MAX_RAW = 98;
 
+function getRelationshipCoefficient(rd: FactorLevel, p: 'high' | 'low', co: FactorLevel): number {
+  if (rd === 'high' && p === 'high' && co === 'high') return 1.00;
+  if (rd === 'high' && p === 'high' && co === 'mid')  return 0.97;
+  if (rd === 'high' && p === 'low'  && co === 'high') return 0.95;
+  if (rd === 'high' && p === 'low'  && co === 'mid')  return 0.90;
+  if (rd === 'mid'  && p === 'high' && co === 'high') return 0.95;
+  if (rd === 'mid'  && p === 'high' && co === 'mid')  return 0.90;
+  if (rd === 'mid'  && p === 'low'  && co === 'high') return 0.87;
+  if (rd === 'mid'  && p === 'low'  && co === 'mid')  return 0.83;
+  if (rd === 'low'  && p === 'high' && co === 'mid')  return 0.85;
+  if (rd === 'low'  && p === 'high' && co === 'low')  return 0.80;
+  if (rd === 'low'  && p === 'low'  && co === 'mid')  return 0.78;
+  if (rd === 'low'  && p === 'low'  && co === 'low')  return 0.75;
+  return 0.85;
+}
+
 function getLabel(score: number): string {
   if (score <= 20) return '水と油';
   if (score <= 40) return '平行線';
@@ -113,7 +129,9 @@ export function computeCompatibility(
   const co = calcCO(u.co_rep, o.co_rep);
 
   const raw = ns + ha + rd + p + sd + co;
-  const score = Math.floor(raw * 100 / MAX_RAW);
+  const coeffU = getRelationshipCoefficient(u.rd, u.p, u.co_rep);
+  const coeffO = getRelationshipCoefficient(o.rd, o.p, o.co_rep);
+  const score = Math.floor(raw * coeffU * coeffO * 100 / MAX_RAW);
 
   // 注目度（midpointからの距離）が高い因子を優先してコメント3つ選ぶ
   const factors = [

@@ -153,7 +153,7 @@ export default function ResultPage() {
         {/* CTA */}
         <div className="text-center pb-4">
           <Link
-            href="/quiz"
+            href="/"
             onClick={handleRestart}
             className="inline-flex items-center gap-2 bg-gradient-to-r from-teal-600 to-blue-700 text-white font-bold px-8 py-4 rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-300"
           >

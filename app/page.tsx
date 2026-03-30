@@ -89,6 +89,7 @@ export default function Home() {
               <TypeCombobox
                 value={typeB}
                 onChange={(id) => setTypeB(id)}
+                showCatchphrase={false}
                 inputClassName="w-full border border-slate-300 rounded-xl px-3 py-2.5 pr-8 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
               />
             </div>
