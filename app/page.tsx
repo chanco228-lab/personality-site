@@ -1,87 +1,162 @@
+'use client';
+
 import Link from 'next/link';
+import { useState } from 'react';
+import { personalityTypes } from '@/data/types';
+import { computeCompatibility } from '@/lib/compatibility';
 
 export default function Home() {
-  return (
-    <main className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #1a6b8a 40%, #2d9596 100%)' }}>
-      {/* Hero Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 py-16 text-center">
-        {/* Badge */}
-        <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm text-white text-sm font-medium px-4 py-1.5 rounded-full mb-8 border border-white/30">
-          <span className="w-2 h-2 rounded-full bg-teal-300 animate-pulse"></span>
-          約5分で完了
-        </div>
+  const [typeA, setTypeA] = useState('');
+  const [typeB, setTypeB] = useState('');
 
-        {/* Main heading */}
-        <h1 className="text-4xl md:text-6xl font-bold text-white mb-4 leading-tight tracking-tight">
-          あなたの本質を、
-          <br />
-          <span className="text-teal-200">科学で照らす。</span>
+  const result =
+    typeA && typeB ? computeCompatibility(typeA, typeB) : null;
+
+  const scoreColor =
+    result === null ? ''
+    : result.score >= 81 ? 'text-teal-600'
+    : result.score >= 61 ? 'text-blue-600'
+    : result.score >= 41 ? 'text-amber-600'
+    : 'text-slate-500';
+
+  return (
+    <main className="min-h-screen flex flex-col bg-white">
+
+      {/* ── Hero ── */}
+      <section className="flex flex-col items-center text-center px-5 pt-16 pb-12 bg-gradient-to-b from-slate-50 to-white">
+        <span className="inline-block bg-teal-50 text-teal-700 text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full mb-6 border border-teal-200">
+          性格診断 · 54 types
+        </span>
+
+        <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
+          あなたはどの<br />
+          <span className="text-teal-600">パーソナリティ</span>タイプ？
         </h1>
 
-        {/* Subtitle */}
-        <p className="text-lg md:text-xl text-blue-100 mb-4 max-w-xl leading-relaxed">
-          心理学に基づいた21の質問で、あなたの性格の核心を解き明かします。
-        </p>
-        <p className="text-sm text-blue-200 mb-10 max-w-lg">
-          新規性探求・損害回避・報酬依存など7つの気質因子から、
-          <br className="hidden md:block" />
-          54のパーソナリティタイプのいずれかを診断します。
+        <p className="text-slate-500 text-base md:text-lg max-w-md leading-relaxed mb-8">
+          21問に答えるだけ。クロニンジャーの気質モデルをもとに、
+          7つの因子から54タイプを判定します。
         </p>
 
-        {/* CTA Button */}
         <Link
           href="/quiz"
-          className="group inline-flex items-center gap-3 bg-white text-teal-700 font-bold text-lg px-8 py-4 rounded-full shadow-xl hover:shadow-2xl hover:bg-teal-50 transition-all duration-300 hover:scale-105"
+          className="inline-flex items-center gap-2 bg-teal-600 hover:bg-teal-700 text-white font-bold text-lg px-8 py-4 rounded-2xl shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105"
         >
-          診断スタートする
-          <svg
-            className="w-5 h-5 transition-transform group-hover:translate-x-1"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            strokeWidth={2.5}
-          >
+          無料で診断する
+          <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
           </svg>
         </Link>
 
-        {/* Features */}
-        <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl w-full">
+        <p className="mt-3 text-slate-400 text-xs">約3分 · 無料 · 登録不要</p>
+      </section>
+
+      {/* ── Divider ── */}
+      <div className="w-full max-w-xl mx-auto px-5">
+        <div className="border-t border-slate-100" />
+      </div>
+
+      {/* ── Quick Compatibility ── */}
+      <section className="px-5 py-12 max-w-xl mx-auto w-full">
+        <div className="text-center mb-6">
+          <h2 className="text-xl font-bold text-slate-800 mb-1">相性をすぐ調べる</h2>
+          <p className="text-slate-400 text-sm">
+            2つのタイプを選ぶだけ。診断前でも使えます。
+          </p>
+        </div>
+
+        <div className="bg-slate-50 rounded-2xl p-5 border border-slate-200">
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+                タイプ A
+              </label>
+              <select
+                value={typeA}
+                onChange={(e) => setTypeA(e.target.value)}
+                className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer"
+              >
+                <option value="">選択してください</option>
+                {personalityTypes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
+                タイプ B
+              </label>
+              <select
+                value={typeB}
+                onChange={(e) => setTypeB(e.target.value)}
+                className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer"
+              >
+                <option value="">選択してください</option>
+                {personalityTypes.map((t) => (
+                  <option key={t.id} value={t.id}>{t.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {result ? (
+            <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
+              <p className="text-xs text-slate-400 mb-1">
+                {personalityTypes.find(t => t.id === typeA)?.name} × {personalityTypes.find(t => t.id === typeB)?.name}
+              </p>
+              <p className={`text-4xl font-extrabold mb-1 ${scoreColor}`}>
+                {result.score}%
+              </p>
+              <p className="text-sm font-semibold text-slate-700 mb-3">「{result.label}」</p>
+              <div className="space-y-1.5 text-left">
+                {result.comments.map((c, i) => (
+                  <p key={i} className="text-xs text-slate-500 leading-relaxed flex gap-1.5">
+                    <span className="text-teal-400 mt-0.5 shrink-0">●</span>
+                    {c}
+                  </p>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white rounded-xl border border-dashed border-slate-200 p-4 text-center">
+              <p className="text-slate-300 text-sm">2つのタイプを選ぶと結果が表示されます</p>
+            </div>
+          )}
+        </div>
+
+        <p className="text-center mt-3 text-slate-400 text-xs">
+          自分のタイプがわからない場合は
+          <Link href="/quiz" className="text-teal-600 underline underline-offset-2 ml-1">まず診断</Link>
+          してみましょう
+        </p>
+      </section>
+
+      {/* ── Divider ── */}
+      <div className="w-full max-w-xl mx-auto px-5">
+        <div className="border-t border-slate-100" />
+      </div>
+
+      {/* ── Features ── */}
+      <section className="px-5 py-10 max-w-xl mx-auto w-full">
+        <div className="grid grid-cols-3 gap-4 text-center">
           {[
-            {
-              emoji: '\u{1F52C}',
-              title: '科学的根拠',
-              desc: 'クロニンジャーの気質モデルをベースにした心理学的アプローチ',
-            },
-            {
-              emoji: '\u26A1',
-              title: 'たった21問',
-              desc: '一問一答形式で約3分。シンプルで直感的に答えられます',
-            },
-            {
-              emoji: '\u{1F512}',
-              title: '完全無料・匿名',
-              desc: '個人情報の入力不要。結果はお使いの端末に保存されます',
-            },
-          ].map((feature) => (
-            <div
-              key={feature.title}
-              className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5 text-left hover:bg-white/15 transition-colors"
-            >
-              <div className="text-2xl mb-3">{feature.emoji}</div>
-              <h3 className="font-bold text-white mb-1.5">{feature.title}</h3>
-              <p className="text-blue-200 text-sm leading-relaxed">{feature.desc}</p>
+            { icon: '🧬', title: '7因子', desc: '気質を多角的に測定' },
+            { icon: '⚡', title: '21問', desc: '約3分で完了' },
+            { icon: '🔒', title: '完全匿名', desc: '登録・課金なし' },
+          ].map((f) => (
+            <div key={f.title} className="flex flex-col items-center gap-1.5">
+              <span className="text-2xl">{f.icon}</span>
+              <span className="text-sm font-bold text-slate-700">{f.title}</span>
+              <span className="text-xs text-slate-400 leading-snug">{f.desc}</span>
             </div>
           ))}
         </div>
-      </div>
+      </section>
 
-      {/* Footer */}
-      <footer className="py-6 text-center border-t border-white/10">
-        <p className="text-blue-200 text-xs leading-relaxed max-w-xl mx-auto px-4">
-          ※ 本診断は娯楽・自己理解を目的としたものです。医療診断や専門的なカウンセリングの代替とはなりません。
-          <br />
-          診断結果はあくまで参考情報としてご活用ください。
+      {/* ── Footer ── */}
+      <footer className="mt-auto py-6 text-center border-t border-slate-100">
+        <p className="text-slate-400 text-xs max-w-md mx-auto px-4 leading-relaxed">
+          ※ 本診断は娯楽・自己理解を目的としたものです。医療診断や専門的カウンセリングの代替ではありません。
         </p>
       </footer>
     </main>
