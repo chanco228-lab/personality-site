@@ -148,7 +148,7 @@ export default function ResultPage() {
         </section>
 
         {/* ⑥ 相性セクション */}
-        <CompatibilitySection userScores={scores} userTypeName={personality.name} />
+        <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
 
         {/* CTA */}
         <div className="text-center pb-4">

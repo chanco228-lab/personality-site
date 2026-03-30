@@ -1,15 +1,15 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { personalityTypes, FactorScores } from '@/data/types';
+import { personalityTypes } from '@/data/types';
 import { computeCompatibility } from '@/lib/compatibility';
 
 type Props = {
-  userScores: FactorScores;
+  userTypeId: string;
   userTypeName: string;
 };
 
-export default function CompatibilitySection({ userScores, userTypeName }: Props) {
+export default function CompatibilitySection({ userTypeId, userTypeName }: Props) {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
@@ -23,7 +23,7 @@ export default function CompatibilitySection({ userScores, userTypeName }: Props
     ? personalityTypes.find((t) => t.id === selectedId)
     : null;
 
-  const result = selectedId ? computeCompatibility(userScores, selectedId) : null;
+  const result = selectedId ? computeCompatibility(userTypeId, selectedId) : null;
 
   const handleSelect = (typeId: string, typeName: string) => {
     setSelectedId(typeId);
