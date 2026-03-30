@@ -41,14 +41,14 @@ export function calculateIntrovertScore(scores: {
   ns: number; ha: number; rd: number; sd: number; co: number; st: number;
 }): number {
   const haContrib =  scores.ha * 2.0;
-  const nsContrib = -scores.ns * 1.5;
-  const rdContrib = -scores.rd * 1.5;
-  const sdContrib = -scores.sd * 1.0;
-  const coContrib = -scores.co * 1.0;
-  const stContrib =  scores.st * 0.8;
+  const nsContrib = -scores.ns * 1.8;
+  const rdContrib = -scores.rd * 0.5;
+  const sdContrib = -scores.sd * 0.5;
+  const coContrib = -scores.co * 0.8;
+  const stContrib =  scores.st * 0.5;
   const raw = haContrib + nsContrib + rdContrib + sdContrib + coContrib + stContrib;
-  const min = -52.2;
-  const max = 70.2;
+  const min = -54.9;
+  const max = 54.9;
   return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
 }
 
