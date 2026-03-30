@@ -1,16 +1,11 @@
 import { FactorLevel } from '@/data/types';
+import { personalityTypes } from '@/data/types';
 
 export type CompatibilityResult = {
   score: number;
   label: string;
   comments: string[];
 };
-
-function charToLevel(c: string): FactorLevel {
-  if (c === 'h') return 'high';
-  if (c === 'l') return 'low';
-  return 'mid';
-}
 
 function levelToNum(l: FactorLevel): number {
   if (l === 'high') return 2;
@@ -20,18 +15,6 @@ function levelToNum(l: FactorLevel): number {
 
 function levelDiff(a: FactorLevel, b: FactorLevel): number {
   return Math.abs(levelToNum(a) - levelToNum(b));
-}
-
-// typeId から NS/HA/RD/P を取得（SD/CO は型定義に存在しないため除外）
-function getTypeFactors(typeId: string): {
-  ns: FactorLevel; ha: FactorLevel; rd: FactorLevel; p: 'high' | 'low';
-} {
-  return {
-    ns: charToLevel(typeId[0]),
-    ha: charToLevel(typeId[1]),
-    rd: charToLevel(typeId[2]),
-    p:  typeId[4] === 'p' ? 'high' : 'low',
-  };
 }
 
 // NS: 同じ=18 / 1段階差=9 / 2段階差=0  max:18
@@ -57,8 +40,21 @@ function calcP(a: 'high' | 'low', b: 'high' | 'low'): number {
   return a === b ? 12 : 0;
 }
 
-// 合計最高: 18+18+18+12 = 66 → 100点換算
-const MAX_RAW = 66;
+// SD: 両方high=16 / どちらかhigh=8 / 両方それ以外=0  max:16
+function calcSD(a: FactorLevel, b: FactorLevel): number {
+  if (a === 'high' && b === 'high') return 16;
+  if (a === 'high' || b === 'high') return 8;
+  return 0;
+}
+
+// CO: 同じ=16 / 1段階差=8 / 2段階差=0  max:16
+function calcCO(a: FactorLevel, b: FactorLevel): number {
+  const d = levelDiff(a, b);
+  return d === 0 ? 16 : d === 1 ? 8 : 0;
+}
+
+// 合計最高: 18+18+18+12+16+16 = 98 → 100点換算
+const MAX_RAW = 98;
 
 function getLabel(score: number): string {
   if (score <= 20) return '水と油';
@@ -87,29 +83,46 @@ const P_COMMENTS: Record<number, string> = {
   12: '物事への粘り強さが似ているので、共同作業でペースが合いやすいです。',
   0:  '粘り強さのスタンスに違いがあり、補い合える場面も摩擦になる場面もあります。',
 };
+const SD_COMMENTS: Record<number, string> = {
+  16: '自己成長への意欲が近いので、お互いに高め合える関係になりやすいです。',
+  8:  '自己成長への関心に差がありますが、互いの強みを活かし合える部分があります。',
+  0:  '自己成長への向き合い方が異なるため、価値観のすり合わせが必要な場面があります。',
+};
+const CO_COMMENTS: Record<number, string> = {
+  16: '人との協調スタンスが近く、一緒にいると安心感を覚えやすい相手です。',
+  8:  '協調性のバランスに差がありますが、お互いを尊重することで良好な関係を築けます。',
+  0:  '対人スタンスに大きな差があり、関係を深めるには歩み寄りが必要です。',
+};
 
-// userTypeId と otherTypeId を比較（両者ともタイプ定義の4因子のみ使用）
 export function computeCompatibility(
   userTypeId: string,
   otherTypeId: string
 ): CompatibilityResult {
-  const u = getTypeFactors(userTypeId);
-  const o = getTypeFactors(otherTypeId);
+  const u = personalityTypes.find((t) => t.id === userTypeId);
+  const o = personalityTypes.find((t) => t.id === otherTypeId);
+
+  if (!u || !o) {
+    return { score: 0, label: '不明', comments: [] };
+  }
 
   const ns = calcNS(u.ns, o.ns);
   const ha = calcHA(u.ha, o.ha);
   const rd = calcRD(u.rd, o.rd);
   const p  = calcP(u.p, o.p);
+  const sd = calcSD(u.sd_rep, o.sd_rep);
+  const co = calcCO(u.co_rep, o.co_rep);
 
-  const raw = ns + ha + rd + p;
+  const raw = ns + ha + rd + p + sd + co;
   const score = Math.floor(raw * 100 / MAX_RAW);
 
   // 注目度（midpointからの距離）が高い因子を優先してコメント3つ選ぶ
   const factors = [
-    { score: ns, midpoint: 9, comment: NS_COMMENTS[ns] },
-    { score: ha, midpoint: 9, comment: HA_COMMENTS[ha] },
-    { score: rd, midpoint: 9, comment: RD_COMMENTS[rd] },
-    { score: p,  midpoint: 6, comment: P_COMMENTS[p]  },
+    { score: ns, midpoint: 9,  comment: NS_COMMENTS[ns] },
+    { score: ha, midpoint: 9,  comment: HA_COMMENTS[ha] },
+    { score: rd, midpoint: 9,  comment: RD_COMMENTS[rd] },
+    { score: p,  midpoint: 6,  comment: P_COMMENTS[p]  },
+    { score: sd, midpoint: 8,  comment: SD_COMMENTS[sd] },
+    { score: co, midpoint: 8,  comment: CO_COMMENTS[co] },
   ];
 
   factors.sort((a, b) =>

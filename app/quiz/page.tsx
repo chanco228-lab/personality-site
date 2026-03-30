@@ -23,6 +23,7 @@ export default function QuizPage() {
   const router = useRouter();
   const [state, setState] = useState<QuizState | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const [showNotice, setShowNotice] = useState(false);
 
   // Initialize quiz state
   useEffect(() => {
@@ -48,6 +49,7 @@ export default function QuizPage() {
     };
     setState(initialState);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
+    setShowNotice(true);
   }, []);
 
   const handleAnswer = (value: number) => {
@@ -124,6 +126,28 @@ export default function QuizPage() {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
         <div className="text-white text-lg">読み込み中...</div>
+      </div>
+    );
+  }
+
+  if (showNotice) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
+        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+          <div className="text-3xl mb-4">💡</div>
+          <h2 className="text-lg font-bold text-slate-800 mb-3">より正確な診断のために</h2>
+          <p className="text-slate-600 text-sm leading-relaxed mb-6">
+            「こうありたい自分」ではなく、<br />
+            「実際の自分の行動パターン」で<br />
+            答えてください。
+          </p>
+          <button
+            onClick={() => setShowNotice(false)}
+            className="w-full bg-gradient-to-r from-teal-600 to-blue-700 text-white font-bold px-6 py-3 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300"
+          >
+            診断を始める
+          </button>
+        </div>
       </div>
     );
   }

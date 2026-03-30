@@ -116,12 +116,12 @@ export default function ResultPage() {
         </section>
 
         {/* ④ あなたが損しやすいことセクション */}
-        <section className="bg-red-50 border border-red-200 rounded-2xl p-6 md:p-8">
-          <h2 className="text-base font-bold text-red-700 mb-3 flex items-center gap-2">
-            <span className="text-red-500 text-xl">&#9888;</span>
+        <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-8">
+          <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <span className="text-slate-400 text-lg">💡</span>
             あなたが損しやすいこと
           </h2>
-          <p className="text-red-800 leading-relaxed text-sm">{personality.loss}</p>
+          <p className="text-slate-700 leading-relaxed text-sm">{personality.loss}</p>
         </section>
 
         {/* ⑤ 人間関係の傾向セクション */}
