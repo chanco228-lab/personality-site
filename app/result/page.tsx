@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { personalityTypes, FactorType } from '@/data/types';
 import { QuizResults } from '@/data/types';
-import { getScoreLevel, calculateIntrovertScore, calculateImpulsivityScore } from '@/lib/scoring';
+import { getScoreLevel, calculateIntrovertScore, calculateIntrovertScore2, calculateImpulsivityScore } from '@/lib/scoring';
 import ScoreBar from '@/components/ScoreBar';
 import { aboutTexts } from '@/data/about';
 import { relationshipTexts } from '@/data/relationships';
@@ -96,12 +96,17 @@ export default function ResultPage() {
   const introvertScore = calculateIntrovertScore({
     ns: scores.NS, ha: scores.HA, rd: scores.RD, sd: scores.SD, co: scores.CO, st: scores.ST,
   });
+  const introvertScore2 = calculateIntrovertScore2({
+    ns: scores.NS, ha: scores.HA, rd: scores.RD, sd: scores.SD, co: scores.CO, st: scores.ST,
+  });
   const impulsivityScore = calculateImpulsivityScore({
     ns: scores.NS, ha: scores.HA, p: scores.P, sd: scores.SD,
   });
 
   const introvertDetail =
     INTROVERT_DETAILS.find((d) => introvertScore <= d.max) ?? INTROVERT_DETAILS[9];
+  const introvertDetail2 =
+    INTROVERT_DETAILS.find((d) => introvertScore2 <= d.max) ?? INTROVERT_DETAILS[9];
 
   const impulsivityLabel =
     impulsivityScore <= 20 ? '慎重派' :
@@ -169,12 +174,30 @@ export default function ResultPage() {
 
         {/* ④ 陰キャ度スコアセクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア（現行計算式）</h2>
           <p className="text-sm text-slate-500 mb-6">内向・外向の傾向を数値で表したものです</p>
           <GradientScoreBar
             score={introvertScore}
             label={introvertDetail.label}
             description={introvertDetail.desc}
+            colorFrom="#FF8C00"
+            colorMid="#22C55E"
+            colorTo="#6366F1"
+            leftLabel="陽キャ"
+            rightLabel="陰キャ"
+          />
+          <p className="text-xs text-slate-400 mt-4 text-center">平均は約50%です</p>
+          <p className="text-xs text-amber-600 mt-2 text-center">※ この指標は現在調整中です（β版）</p>
+        </section>
+
+        {/* ④-2 陰キャ度スコアセクション（CO重視型） */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア（β計算式）</h2>
+          <p className="text-sm text-slate-500 mb-6">内向・外向の傾向を数値で表したものです</p>
+          <GradientScoreBar
+            score={introvertScore2}
+            label={introvertDetail2.label}
+            description={introvertDetail2.desc}
             colorFrom="#FF8C00"
             colorMid="#22C55E"
             colorTo="#6366F1"

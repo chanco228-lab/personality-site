@@ -52,6 +52,21 @@ export function calculateIntrovertScore(scores: {
   return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
 }
 
+export function calculateIntrovertScore2(scores: {
+  ns: number; ha: number; rd: number; sd: number; co: number; st: number;
+}): number {
+  const coContrib = -scores.co * 2.0;
+  const haContrib =  scores.ha * 1.5;
+  const nsContrib = -scores.ns * 0.8;
+  const rdContrib = -scores.rd * 0.5;
+  const sdContrib = -scores.sd * 0.5;
+  const stContrib =  scores.st * 0.3;
+  const raw = coContrib + haContrib + nsContrib + rdContrib + sdContrib + stContrib;
+  const min = -50.4;
+  const max = 50.4;
+  return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
+}
+
 export function calculateImpulsivityScore(scores: {
   ns: number; ha: number; p: number; sd: number;
 }): number {
