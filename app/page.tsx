@@ -4,13 +4,17 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { personalityTypes } from '@/data/types';
 import { computeCompatibility } from '@/lib/compatibility';
+import TypeCombobox from '@/components/TypeCombobox';
 
 export default function Home() {
-  const [typeA, setTypeA] = useState('');
-  const [typeB, setTypeB] = useState('');
+  const [typeA, setTypeA] = useState<string | null>(null);
+  const [typeB, setTypeB] = useState<string | null>(null);
 
   const result =
     typeA && typeB ? computeCompatibility(typeA, typeB) : null;
+
+  const typeAName = typeA ? personalityTypes.find((t) => t.id === typeA)?.name : null;
+  const typeBName = typeB ? personalityTypes.find((t) => t.id === typeB)?.name : null;
 
   const scoreColor =
     result === null ? ''
@@ -71,38 +75,29 @@ export default function Home() {
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
                 タイプ A
               </label>
-              <select
+              <TypeCombobox
                 value={typeA}
-                onChange={(e) => setTypeA(e.target.value)}
-                className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer"
-              >
-                <option value="">選択してください</option>
-                {personalityTypes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+                onChange={(id) => setTypeA(id)}
+                showCatchphrase={false}
+                inputClassName="w-full border border-slate-300 rounded-xl px-3 py-2.5 pr-8 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+              />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
                 タイプ B
               </label>
-              <select
+              <TypeCombobox
                 value={typeB}
-                onChange={(e) => setTypeB(e.target.value)}
-                className="w-full border border-slate-300 bg-white rounded-xl px-3 py-2.5 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-teal-400 appearance-none cursor-pointer"
-              >
-                <option value="">選択してください</option>
-                {personalityTypes.map((t) => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
-                ))}
-              </select>
+                onChange={(id) => setTypeB(id)}
+                inputClassName="w-full border border-slate-300 rounded-xl px-3 py-2.5 pr-8 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+              />
             </div>
           </div>
 
           {result ? (
             <div className="bg-white rounded-xl border border-slate-200 p-4 text-center">
               <p className="text-xs text-slate-400 mb-1">
-                {personalityTypes.find(t => t.id === typeA)?.name} × {personalityTypes.find(t => t.id === typeB)?.name}
+                {typeAName} × {typeBName}
               </p>
               <p className={`text-4xl font-extrabold mb-1 ${scoreColor}`}>
                 {result.score}%
