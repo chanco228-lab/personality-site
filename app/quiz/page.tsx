@@ -134,6 +134,9 @@ export default function QuizPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
         <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
+          <span className="inline-flex items-center gap-1.5 bg-amber-400 text-amber-900 text-xs font-extrabold px-3 py-1 rounded-full shadow ring-2 ring-amber-300 mb-4">
+            <span>⚠️</span> β版 ー 随時更新
+          </span>
           <div className="text-3xl mb-4">💡</div>
           <h2 className="text-lg font-bold text-slate-800 mb-3">より正確な診断のために</h2>
           <p className="text-slate-600 text-sm leading-relaxed mb-6">

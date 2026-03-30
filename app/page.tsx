@@ -2,13 +2,31 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { personalityTypes } from '@/data/types';
 import { computeCompatibility } from '@/lib/compatibility';
 import TypeCombobox from '@/components/TypeCombobox';
+import { decodePass } from '@/lib/pass';
+
+const RESULTS_KEY = 'personality_quiz_results';
 
 export default function Home() {
+  const router = useRouter();
   const [typeA, setTypeA] = useState<string | null>(null);
   const [typeB, setTypeB] = useState<string | null>(null);
+  const [passInput, setPassInput] = useState('');
+  const [passError, setPassError] = useState(false);
+
+  const handlePassSubmit = () => {
+    const decoded = decodePass(passInput);
+    if (!decoded) {
+      setPassError(true);
+      setTimeout(() => setPassError(false), 2000);
+      return;
+    }
+    localStorage.setItem(RESULTS_KEY, JSON.stringify(decoded));
+    router.push('/result');
+  };
 
   const result =
     typeA && typeB ? computeCompatibility(typeA, typeB) : null;
@@ -28,9 +46,14 @@ export default function Home() {
 
       {/* ── Hero ── */}
       <section className="flex flex-col items-center text-center px-5 pt-16 pb-12 bg-gradient-to-b from-slate-50 to-white">
-        <span className="inline-block bg-teal-50 text-teal-700 text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full mb-6 border border-teal-200">
-          性格診断 · 54 types
-        </span>
+        <div className="flex flex-col items-center gap-2 mb-6">
+          <span className="inline-block bg-teal-50 text-teal-700 text-xs font-semibold tracking-widest uppercase px-3 py-1 rounded-full border border-teal-200">
+            性格診断 · 54 types
+          </span>
+          <span className="inline-flex items-center gap-1.5 bg-amber-400 text-amber-900 text-sm font-extrabold px-4 py-1.5 rounded-full shadow-md ring-2 ring-amber-300">
+            <span className="text-base">⚠️</span> β版 ー 随時更新
+          </span>
+        </div>
 
         <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 leading-tight tracking-tight mb-4">
           あなたはどの<br />
@@ -146,6 +169,40 @@ export default function Home() {
               <span className="text-xs text-slate-400 leading-snug">{f.desc}</span>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Pass Input ── */}
+      <section className="px-5 pb-10 max-w-xl mx-auto w-full">
+        <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
+          <h2 className="text-sm font-bold text-slate-700 mb-1 flex items-center gap-2">
+            <span>🔑</span>
+            性格パスをお持ちの方
+          </h2>
+          <p className="text-xs text-slate-400 mb-3">パスを入力すると質問を飛ばして結果を確認できます。</p>
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={passInput}
+              onChange={(e) => setPassInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handlePassSubmit()}
+              placeholder="例: hlh_p|3,-2,5,1,-3,4,2"
+              className={`flex-1 border rounded-xl px-3 py-2.5 text-sm font-mono text-slate-700 focus:outline-none focus:ring-2 transition-colors ${
+                passError
+                  ? 'border-red-400 focus:ring-red-300 bg-red-50'
+                  : 'border-slate-300 focus:ring-teal-400 bg-white'
+              }`}
+            />
+            <button
+              onClick={handlePassSubmit}
+              className="shrink-0 bg-teal-600 hover:bg-teal-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-colors"
+            >
+              決定
+            </button>
+          </div>
+          {passError && (
+            <p className="text-xs text-red-500 mt-1.5">パスが正しくありません。コピーしたパスをそのまま貼り付けてください。</p>
+          )}
         </div>
       </section>
 

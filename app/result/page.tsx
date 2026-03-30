@@ -11,6 +11,7 @@ import { relationshipTexts } from '@/data/relationships';
 import { lossTexts } from '@/data/losses';
 import CompatibilitySection from '@/components/CompatibilitySection';
 import GradientScoreBar from '@/components/GradientScoreBar';
+import { encodePass } from '@/lib/pass';
 
 const INTROVERT_DETAILS = [
   { max: 10, label: '真の陽キャ',          desc: '人といる時間がエネルギーの源。どんな場でも自然と中心にいる。' },
@@ -33,6 +34,15 @@ const FACTOR_ORDER: FactorType[] = ['NS', 'HA', 'RD', 'P', 'SD', 'CO', 'ST'];
 export default function ResultPage() {
   const [results, setResults] = useState<QuizResults | null>(null);
   const [notFound, setNotFound] = useState(false);
+  const [passCopied, setPassCopied] = useState(false);
+
+  const handleCopyPass = (results: QuizResults) => {
+    const pass = encodePass(results);
+    navigator.clipboard.writeText(pass).then(() => {
+      setPassCopied(true);
+      setTimeout(() => setPassCopied(false), 2000);
+    });
+  };
 
   useEffect(() => {
     const saved = localStorage.getItem(RESULTS_KEY);
@@ -119,7 +129,12 @@ export default function ResultPage() {
       {/* ① タイトルセクション */}
       <div className="py-12 px-4 text-center" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
         <div className="max-w-2xl mx-auto">
-          <p className="text-teal-200 text-sm font-semibold uppercase tracking-widest mb-3">診断結果</p>
+          <div className="flex flex-col items-center gap-2 mb-3">
+            <p className="text-teal-200 text-sm font-semibold uppercase tracking-widest">診断結果</p>
+            <span className="inline-flex items-center gap-1.5 bg-amber-400 text-amber-900 text-sm font-extrabold px-4 py-1.5 rounded-full shadow-md ring-2 ring-amber-300">
+              <span className="text-base">⚠️</span> β版 ー 随時更新
+            </span>
+          </div>
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
             {personality.name}
           </h1>
@@ -167,6 +182,7 @@ export default function ResultPage() {
             rightLabel="陰キャ"
           />
           <p className="text-xs text-slate-400 mt-4 text-center">平均は約50%です</p>
+          <p className="text-xs text-amber-600 mt-2 text-center">※ この指標は現在調整中です（β版）</p>
         </section>
 
         {/* ⑤ 衝動性スコアセクション */}
@@ -192,6 +208,7 @@ export default function ResultPage() {
           <p className="mt-4 text-xs text-slate-400 leading-relaxed">
             ※このスコアは医療的な診断ではありません。あくまで性格傾向の参考値としてご利用ください。
           </p>
+          <p className="text-xs text-amber-600 mt-2">※ この指標は現在調整中です（β版）</p>
         </section>
 
         {/* ⑥ あなたが損しやすいことセクション */}
@@ -228,6 +245,42 @@ export default function ResultPage() {
 
         {/* ⑥ 相性セクション */}
         <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
+
+        {/* 性格パス */}
+        <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-8">
+          <h2 className="text-base font-bold text-slate-700 mb-1 flex items-center gap-2">
+            <span className="text-slate-400 text-lg">🔑</span>
+            性格パス
+          </h2>
+          <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+            このコードを保存しておくと、次回以降は質問を飛ばして結果画面を直接開けます。
+          </p>
+          <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-xl px-4 py-3">
+            <code className="flex-1 text-sm text-slate-600 font-mono break-all select-all">
+              {encodePass(results)}
+            </code>
+            <button
+              onClick={() => handleCopyPass(results)}
+              className="shrink-0 flex items-center gap-1.5 bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-2 rounded-lg transition-colors"
+            >
+              {passCopied ? (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                  </svg>
+                  コピー済み
+                </>
+              ) : (
+                <>
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  コピー
+                </>
+              )}
+            </button>
+          </div>
+        </section>
 
         {/* CTA */}
         <div className="text-center pb-4">
