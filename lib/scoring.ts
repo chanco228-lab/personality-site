@@ -36,3 +36,31 @@ export function getScoreLevel(score: number): FactorLevel {
 
 export const MAX_SCORE = 9;  // 3 questions × +3 points max
 export const MIN_SCORE = -9; // 3 questions × -3 points min
+
+export function calculateIntrovertScore(scores: {
+  ns: number; ha: number; rd: number; sd: number; co: number; st: number;
+}): number {
+  const haContrib =  scores.ha * 2.0;
+  const nsContrib = -scores.ns * 1.5;
+  const rdContrib = -scores.rd * 1.5;
+  const sdContrib = -scores.sd * 1.0;
+  const coContrib = -scores.co * 1.0;
+  const stContrib =  scores.st * 0.8;
+  const raw = haContrib + nsContrib + rdContrib + sdContrib + coContrib + stContrib;
+  const min = -52.2;
+  const max = 70.2;
+  return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
+}
+
+export function calculateImpulsivityScore(scores: {
+  ns: number; ha: number; p: number; sd: number;
+}): number {
+  const nsContrib =  scores.ns * 2.0;
+  const pContrib  = -scores.p  * 1.5;
+  const sdContrib = -scores.sd * 1.0;
+  const haContrib = -scores.ha * 1.0;
+  const raw = nsContrib + pContrib + sdContrib + haContrib;
+  const min = -31.5;
+  const max = 49.5;
+  return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
+}

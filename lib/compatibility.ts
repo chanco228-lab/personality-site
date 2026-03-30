@@ -56,7 +56,12 @@ function calcCO(a: FactorLevel, b: FactorLevel): number {
 // 合計最高: 18+18+18+12+16+16 = 98 → 100点換算
 const MAX_RAW = 98;
 
-function getRelationshipCoefficient(rd: FactorLevel, p: 'high' | 'low', co: FactorLevel): number {
+function getRelationshipCoefficient(rd: FactorLevel, p: 'high' | 'low', co: FactorLevel, sd: FactorLevel): number {
+  // コミュ力特別高いケース（SD高が上乗せ）
+  if (sd === 'high' && rd === 'high' && p === 'high' && co === 'high') return 1.10;
+  if (sd === 'high' && rd === 'high' && p === 'high' && co === 'mid')  return 1.05;
+  if (sd === 'high' && rd === 'high' && p === 'low'  && co === 'high') return 1.03;
+  // 既存テーブル
   if (rd === 'high' && p === 'high' && co === 'high') return 1.00;
   if (rd === 'high' && p === 'high' && co === 'mid')  return 0.97;
   if (rd === 'high' && p === 'low'  && co === 'high') return 0.95;
@@ -129,8 +134,8 @@ export function computeCompatibility(
   const co = calcCO(u.co_rep, o.co_rep);
 
   const raw = ns + ha + rd + p + sd + co;
-  const coeffU = getRelationshipCoefficient(u.rd, u.p, u.co_rep);
-  const coeffO = getRelationshipCoefficient(o.rd, o.p, o.co_rep);
+  const coeffU = getRelationshipCoefficient(u.rd, u.p, u.co_rep, u.sd_rep);
+  const coeffO = getRelationshipCoefficient(o.rd, o.p, o.co_rep, o.sd_rep);
   const score = Math.floor(raw * coeffU * coeffO * 100 / MAX_RAW);
 
   // 注目度（midpointからの距離）が高い因子を優先してコメント3つ選ぶ
