@@ -99,8 +99,14 @@ export default function ResultPage() {
     impulsivityScore <= 60 ? '柔軟派' :
     impulsivityScore <= 80 ? '衝動的' : '本能で生きてる';
 
+  const stLevel = getScoreLevel(scores.ST);
+
   const aboutEntry = aboutTexts.find(
     (a) => a.typeId === personality.id && a.sdLevel === sdLevel
+  );
+
+  const lossEntry = lossTexts.find(
+    (l) => l.typeId === personality.id && l.stLevel === stLevel
   );
 
   const relationshipEntry = relationshipTexts.find(
@@ -194,7 +200,7 @@ export default function ResultPage() {
             <span className="text-slate-400 text-lg">💡</span>
             あなたが損しやすいこと
           </h2>
-          <p className="text-slate-700 leading-relaxed text-sm">{personality.loss}</p>
+          <p className="text-slate-700 leading-relaxed text-sm">{lossEntry ? lossEntry.text : '準備中です。'}</p>
         </section>
 
         {/* ⑤ 人間関係の傾向セクション */}
