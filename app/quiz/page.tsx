@@ -4,12 +4,14 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getShuffledQuestions } from '@/data/questions';
 import { Question } from '@/data/types';
-import { calculateScores, determineType } from '@/lib/scoring';
+import { calculateScores, determineType, calculateIntrovertScore } from '@/lib/scoring';
+import { supabase } from '@/lib/supabase';
 import QuizCard from '@/components/QuizCard';
 import ProgressBar from '@/components/ProgressBar';
 
 const STORAGE_KEY = 'personality_quiz_state';
 const RESULTS_KEY = 'personality_quiz_results';
+const RESULT_ID_KEY = 'personality_quiz_result_id';
 const QUIZ_VERSION = 4; // increment when questions or scoring change
 
 type QuizState = {
@@ -69,12 +71,32 @@ export default function QuizPage() {
 
       const scores = calculateScores(newAnswers, questionFactors);
       const typeId = determineType(scores);
-
       const results = { scores, typeId };
+
       localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
       localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(RESULT_ID_KEY);
 
-      router.push('/result');
+      // Supabaseに保存してから遷移
+      const introvertScore = calculateIntrovertScore({
+        ns: scores.NS, ha: scores.HA, rd: scores.RD,
+        sd: scores.SD, co: scores.CO, st: scores.ST,
+      });
+      (async () => {
+        const { data } = await supabase.from('results').insert({
+          type_id: typeId,
+          ns_score: scores.NS,
+          ha_score: scores.HA,
+          rd_score: scores.RD,
+          p_score: scores.P,
+          sd_score: scores.SD,
+          co_score: scores.CO,
+          st_score: scores.ST,
+          introvert_score: introvertScore,
+        }).select().single();
+        if (data) localStorage.setItem(RESULT_ID_KEY, data.id);
+        router.push('/result');
+      })();
       return;
     }
 

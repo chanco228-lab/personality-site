@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { personalityTypes, FactorType } from '@/data/types';
 import { QuizResults } from '@/data/types';
-import { getScoreLevel, calculateIntrovertScore, calculateIntrovertScore2, calculateImpulsivityScore } from '@/lib/scoring';
+import { getScoreLevel, calculateIntrovertScore, calculateImpulsivityScore } from '@/lib/scoring';
 import ScoreBar from '@/components/ScoreBar';
 import { aboutTexts } from '@/data/about';
 import { relationshipTexts } from '@/data/relationships';
@@ -12,6 +12,9 @@ import { lossTexts } from '@/data/losses';
 import CompatibilitySection from '@/components/CompatibilitySection';
 import GradientScoreBar from '@/components/GradientScoreBar';
 import { encodePass } from '@/lib/pass';
+import { supabase } from '@/lib/supabase';
+
+const RESULT_ID_KEY = 'personality_quiz_result_id';
 
 const INTROVERT_DETAILS = [
   { max: 10, label: '真の陽キャ',          desc: '人といる時間がエネルギーの源。どんな場でも自然と中心にいる。' },
@@ -31,10 +34,14 @@ const STORAGE_KEY = 'personality_quiz_state';
 
 const FACTOR_ORDER: FactorType[] = ['NS', 'HA', 'RD', 'P', 'SD', 'CO', 'ST'];
 
+
 export default function ResultPage() {
   const [results, setResults] = useState<QuizResults | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [passCopied, setPassCopied] = useState(false);
+  const [resultId, setResultId] = useState<string | null>(null);
+  const [feedbackSent, setFeedbackSent] = useState(false);
+  const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
 
   const handleCopyPass = (results: QuizResults) => {
     const pass = encodePass(results);
@@ -57,6 +64,27 @@ export default function ResultPage() {
       setNotFound(true);
     }
   }, []);
+
+  useEffect(() => {
+    const id = localStorage.getItem(RESULT_ID_KEY);
+    if (id) setResultId(id);
+  }, []);
+
+  const sendFeedback = async (score: number) => {
+    if (!results || feedbackSent) return;
+    setFeedbackScore(score);
+    const introvertScore = calculateIntrovertScore({
+      ns: results.scores.NS, ha: results.scores.HA, rd: results.scores.RD,
+      sd: results.scores.SD, co: results.scores.CO, st: results.scores.ST,
+    });
+    await supabase.from('feedback').insert({
+      result_id: resultId,
+      type_id: results.typeId,
+      introvert_score: introvertScore,
+      score,
+    });
+    setFeedbackSent(true);
+  };
 
   const handleRestart = () => {
     localStorage.removeItem(RESULTS_KEY);
@@ -96,17 +124,12 @@ export default function ResultPage() {
   const introvertScore = calculateIntrovertScore({
     ns: scores.NS, ha: scores.HA, rd: scores.RD, sd: scores.SD, co: scores.CO, st: scores.ST,
   });
-  const introvertScore2 = calculateIntrovertScore2({
-    ns: scores.NS, ha: scores.HA, rd: scores.RD, sd: scores.SD, co: scores.CO, st: scores.ST,
-  });
   const impulsivityScore = calculateImpulsivityScore({
     ns: scores.NS, ha: scores.HA, p: scores.P, sd: scores.SD,
   });
 
   const introvertDetail =
     INTROVERT_DETAILS.find((d) => introvertScore <= d.max) ?? INTROVERT_DETAILS[9];
-  const introvertDetail2 =
-    INTROVERT_DETAILS.find((d) => introvertScore2 <= d.max) ?? INTROVERT_DETAILS[9];
 
   const impulsivityLabel =
     impulsivityScore <= 20 ? '慎重派' :
@@ -174,7 +197,7 @@ export default function ResultPage() {
 
         {/* ④ 陰キャ度スコアセクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア（現行計算式）</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア</h2>
           <p className="text-sm text-slate-500 mb-6">内向・外向の傾向を数値で表したものです</p>
           <GradientScoreBar
             score={introvertScore}
@@ -190,23 +213,6 @@ export default function ResultPage() {
           <p className="text-xs text-amber-600 mt-2 text-center">※ この指標は現在調整中です（β版）</p>
         </section>
 
-        {/* ④-2 陰キャ度スコアセクション（CO重視型） */}
-        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア（β計算式）</h2>
-          <p className="text-sm text-slate-500 mb-6">内向・外向の傾向を数値で表したものです</p>
-          <GradientScoreBar
-            score={introvertScore2}
-            label={introvertDetail2.label}
-            description={introvertDetail2.desc}
-            colorFrom="#FF8C00"
-            colorMid="#22C55E"
-            colorTo="#6366F1"
-            leftLabel="陽キャ"
-            rightLabel="陰キャ"
-          />
-          <p className="text-xs text-slate-400 mt-4 text-center">平均は約50%です</p>
-          <p className="text-xs text-amber-600 mt-2 text-center">※ この指標は現在調整中です（β版）</p>
-        </section>
 
         {/* ⑤ 衝動性スコアセクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
@@ -268,6 +274,38 @@ export default function ResultPage() {
 
         {/* ⑥ 相性セクション */}
         <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
+
+        {/* フィードバック */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8 text-center">
+          <h2 className="text-base font-bold text-slate-700 mb-1">この診断結果はあなたに当てはまっていましたか？</h2>
+          <p className="text-xs text-slate-400 mb-5">フィードバックは診断の改善に役立てます</p>
+          {feedbackSent ? (
+            <p className="text-teal-600 font-semibold text-sm">ありがとうございました 🙏</p>
+          ) : (
+            <>
+              <div className="flex justify-center gap-3 mb-3">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => sendFeedback(n)}
+                    disabled={feedbackSent}
+                    className={`w-11 h-11 rounded-full font-bold text-base border-2 transition-all duration-150
+                      ${feedbackScore === n
+                        ? 'bg-teal-600 border-teal-600 text-white'
+                        : 'border-slate-300 text-slate-600 hover:border-teal-400 hover:text-teal-600'
+                      }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-slate-400 px-1 max-w-xs mx-auto">
+                <span>全然違う</span>
+                <span>ぴったり</span>
+              </div>
+            </>
+          )}
+        </section>
 
         {/* 性格パス */}
         <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-8">
