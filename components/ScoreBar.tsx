@@ -25,6 +25,7 @@ export default function ScoreBar({ factor, score }: ScoreBarProps) {
       {/* Factor name */}
       <span className="flex-shrink-0 w-20 text-sm font-bold text-slate-700 text-right">
         {FACTOR_LABELS[factor]}
+        <span className="ml-1 text-xs font-normal text-slate-400">{factor}</span>
       </span>
 
       {/* Low label */}

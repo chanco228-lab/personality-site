@@ -17,16 +17,16 @@ import { supabase } from '@/lib/supabase';
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 
 const INTROVERT_DETAILS = [
-  { max: 10, label: '真の陽キャ',          desc: '人といる時間がエネルギーの源。どんな場でも自然と中心にいる。' },
-  { max: 20, label: '陽キャ',              desc: '初対面でも壁を感じない。場の空気を明るくする力がある。' },
-  { max: 30, label: '社交派',              desc: '人と関わるのが得意で、広い人間関係を持ちやすい。' },
-  { max: 40, label: 'やや社交派',          desc: '基本的には人と関わることを楽しめるが、一人の時間も大切にする。' },
-  { max: 50, label: 'バランス型（陽寄り）', desc: '状況に応じて社交的にも内向的にもなれる柔軟なタイプ。' },
-  { max: 60, label: 'バランス型（陰寄り）', desc: '深い関係を少数と築くことを好む。広さより深さ重視。' },
-  { max: 70, label: 'やや内向派',          desc: '一人の時間で充電するタイプ。人との関わりは選ぶ。' },
-  { max: 80, label: '内向派',              desc: '静かな環境と少人数での関わりが心地よい。' },
-  { max: 90, label: '陰キャ',              desc: '自分の世界を大切にする。深く狭い関係が性に合っている。' },
-  { max: 100, label: '生粋の陰キャ',       desc: '一人でいることが最も落ち着く。内なる世界が豊か。' },
+  { max: 10,  label: '真の陽キャ',        desc: '人といる時間がエネルギーの源。どんな場でも自然と中心にいる。' },
+  { max: 20,  label: '陽キャ',            desc: '初対面でも壁を感じない。場の空気を明るくする力がある。' },
+  { max: 30,  label: '社交派',            desc: '人と関わるのが得意で、広い人間関係を持ちやすい。' },
+  { max: 40,  label: 'やや社交派',        desc: '基本的には人と関わることを楽しめるが、一人の時間も大切にする。' },
+  { max: 50,  label: '無キャ（陽寄り）',  desc: '状況に応じて社交的にも内向的にもなれる柔軟なタイプ。' },
+  { max: 59,  label: '無キャ（陰寄り）',  desc: '深い関係を少数と築くことを好む。広さより深さ重視。' },
+  { max: 70,  label: 'やや内向派',        desc: '一人の時間で充電するタイプ。人との関わりは選ぶ。' },
+  { max: 80,  label: '内向派',            desc: '静かな環境と少人数での関わりが心地よい。' },
+  { max: 90,  label: '陰キャ',            desc: '自分の世界を大切にする。深く狭い関係が性に合っている。' },
+  { max: 100, label: '生粋の陰キャ',      desc: '一人でいることが最も落ち着く。内なる世界が豊か。' },
 ];
 
 const RESULTS_KEY = 'personality_quiz_results';
@@ -70,20 +70,22 @@ export default function ResultPage() {
     if (id) setResultId(id);
   }, []);
 
-  const sendFeedback = async (score: number) => {
+  const sendFeedback = (score: number) => {
     if (!results || feedbackSent) return;
+    // 即座にUI更新
     setFeedbackScore(score);
+    setFeedbackSent(true);
+    // 送信は裏で
     const introvertScore = calculateIntrovertScore({
       ns: results.scores.NS, ha: results.scores.HA, rd: results.scores.RD,
       sd: results.scores.SD, co: results.scores.CO, st: results.scores.ST,
     });
-    await supabase.from('feedback').insert({
+    supabase.from('feedback_v2').insert({
       result_id: resultId,
       type_id: results.typeId,
       introvert_score: introvertScore,
       score,
-    });
-    setFeedbackSent(true);
+    }).then();
   };
 
   const handleRestart = () => {
@@ -197,7 +199,18 @@ export default function ResultPage() {
 
         {/* ④ 陰キャ度スコアセクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">陰キャ度スコア</h2>
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-800">陰キャ・陽キャ診断</h2>
+            <span className={`text-sm font-bold px-3 py-0.5 rounded-full ${
+              introvertScore <= 40
+                ? 'bg-orange-100 text-orange-600'
+                : introvertScore <= 59
+                ? 'bg-green-100 text-green-600'
+                : 'bg-indigo-100 text-indigo-600'
+            }`}>
+              {introvertScore <= 40 ? '陽キャ' : introvertScore <= 59 ? '無キャ' : '陰キャ'}
+            </span>
+          </div>
           <p className="text-sm text-slate-500 mb-6">内向・外向の傾向を数値で表したものです</p>
           <GradientScoreBar
             score={introvertScore}
@@ -216,7 +229,7 @@ export default function ResultPage() {
 
         {/* ⑤ 衝動性スコアセクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-          <h2 className="text-lg font-bold text-slate-800 mb-1">衝動性スコア</h2>
+          <h2 className="text-lg font-bold text-slate-800 mb-1">行動スタイル診断</h2>
           <p className="text-sm text-slate-500 mb-6">行動の計画性と衝動性のバランスを表したものです</p>
           <GradientScoreBar
             score={impulsivityScore}

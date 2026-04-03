@@ -7,12 +7,17 @@ function getLevel(score: number): FactorLevel {
   return 'mid';
 }
 
-export function calculateScores(answers: Record<number, number>, questionFactors: Record<number, string>): FactorScores {
+export function calculateScores(
+  answers: Record<number, number>,
+  questionFactors: Record<number, string>,
+  questionReversed: Record<number, boolean> = {},
+): FactorScores {
   const scores: FactorScores = { NS: 0, HA: 0, RD: 0, P: 0, SD: 0, CO: 0, ST: 0 };
   for (const [questionId, answer] of Object.entries(answers)) {
-    const factor = questionFactors[Number(questionId)] as keyof FactorScores;
+    const id = Number(questionId);
+    const factor = questionFactors[id] as keyof FactorScores;
     if (factor && factor in scores) {
-      scores[factor] += answer;
+      scores[factor] += questionReversed[id] ? -answer : answer;
     }
   }
   return scores;
@@ -40,15 +45,14 @@ export const MIN_SCORE = -9; // 3 questions × -3 points min
 export function calculateIntrovertScore(scores: {
   ns: number; ha: number; rd: number; sd: number; co: number; st: number;
 }): number {
-  const haContrib =  scores.ha * 1.8;
-  const nsContrib = -scores.ns * 1.8;
+  const haContrib =  scores.ha * 2.0;
+  const nsContrib = -scores.ns * 1.75;
   const rdContrib = -scores.rd * 1.0;
-  const coContrib = -scores.co * 1.0;
-  const sdContrib = -scores.sd * 0.8;
-  const stContrib =  scores.st * 0.5;
-  const raw = haContrib + nsContrib + rdContrib + coContrib + sdContrib + stContrib;
-  const min = -62.1;
-  const max = 62.1;
+  const sdContrib = -scores.sd * 0.5;
+  const coContrib = -scores.co * 0.5;
+  const raw = haContrib + nsContrib + rdContrib + sdContrib + coContrib;
+  const min = -51.75;
+  const max =  51.75;
   return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
 }
 
@@ -71,11 +75,10 @@ export function calculateImpulsivityScore(scores: {
   ns: number; ha: number; p: number; sd: number;
 }): number {
   const nsContrib =  scores.ns * 2.0;
-  const pContrib  = -scores.p  * 1.5;
-  const sdContrib = -scores.sd * 1.0;
+  const pContrib  = -scores.p  * 2.0;
   const haContrib = -scores.ha * 1.0;
-  const raw = nsContrib + pContrib + sdContrib + haContrib;
-  const min = -31.5;
-  const max = 49.5;
+  const raw = nsContrib + pContrib + haContrib;
+  const min = -45;
+  const max =  45;
   return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
 }

@@ -12,7 +12,7 @@ import ProgressBar from '@/components/ProgressBar';
 const STORAGE_KEY = 'personality_quiz_state';
 const RESULTS_KEY = 'personality_quiz_results';
 const RESULT_ID_KEY = 'personality_quiz_result_id';
-const QUIZ_VERSION = 4; // increment when questions or scoring change
+const QUIZ_VERSION = 5; // increment when questions or scoring change
 
 type QuizState = {
   version: number;
@@ -65,11 +65,13 @@ export default function QuizPage() {
     if (nextIndex >= state.questions.length) {
       // Quiz complete - calculate results
       const questionFactors: Record<number, string> = {};
+      const questionReversed: Record<number, boolean> = {};
       state.questions.forEach((q) => {
         questionFactors[q.id] = q.factor;
+        questionReversed[q.id] = q.reversed;
       });
 
-      const scores = calculateScores(newAnswers, questionFactors);
+      const scores = calculateScores(newAnswers, questionFactors, questionReversed);
       const typeId = determineType(scores);
       const results = { scores, typeId };
 
@@ -83,7 +85,7 @@ export default function QuizPage() {
         sd: scores.SD, co: scores.CO, st: scores.ST,
       });
       (async () => {
-        const { data } = await supabase.from('results').insert({
+        const { data } = await supabase.from('results_v2').insert({
           type_id: typeId,
           ns_score: scores.NS,
           ha_score: scores.HA,
