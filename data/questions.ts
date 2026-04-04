@@ -3,13 +3,13 @@ import { Question } from './types';
 const rawQuestions: Question[] = [
   // NS (新規性探求)
   { id: 1, text: '計画通りに進めるより、その場の思いつきで行動することを楽しめる', factor: 'NS', reversed: false },
-  { id: 2, text: '慣れた環境や習慣を変えることに、それほど抵抗を感じない', factor: 'NS', reversed: false },
+  { id: 2, text: '新しい環境や人間関係に飛び込むのが得意なほうだ', factor: 'NS', reversed: false },
   { id: 3, text: '仕事や趣味で、同じやり方を続けるより新しい方法を試してみたくなる', factor: 'NS', reversed: false },
 
   // HA (損害回避)
   { id: 4, text: '大事な決断をする前に、失敗したときのことを何度も考えてしまう', factor: 'HA', reversed: false },
   { id: 5, text: '初めての場所に行くとき、必要以上に不安を感じてしまうことが多い', factor: 'HA', reversed: false },
-  { id: 6, text: 'うまくいくかわからないことでも、とりあえず試してみることができる', factor: 'HA', reversed: true },
+  { id: 6, text: '締め切りや約束が近づくと、間に合わないかもしれないと不安になる', factor: 'HA', reversed: false },
 
   // RD (報酬依存)
   { id: 7, text: '誰かに感謝されると、それだけで頑張った甲斐があったと感じる', factor: 'RD', reversed: false },
