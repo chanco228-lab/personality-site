@@ -17,16 +17,16 @@ import { supabase } from '@/lib/supabase';
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 
 const INTROVERT_DETAILS = [
-  { max: 10,  label: '真の陽キャ', desc: '人といる時間がエネルギーの源。どんな場でも自然と中心にいる。' },
-  { max: 20,  label: '陽キャ',     desc: '初対面でも壁を感じない。場の空気を明るくする力がある。' },
-  { max: 30,  label: 'やや陽キャ', desc: '人と関わるのが得意で、広い人間関係を持ちやすい。' },
-  { max: 40,  label: '社交派',     desc: '基本的には人と関わることを楽しめるが、一人の時間も大切にする。' },
-  { max: 50,  label: '無キャ(陽)', desc: '状況に応じて社交的にも内向的にもなれる柔軟なタイプ。' },
-  { max: 60,  label: '無キャ(陰)', desc: '深い関係を少数と築くことを好む。広さより深さ重視。' },
-  { max: 70,  label: '内向的',     desc: '一人の時間で充電するタイプ。人との関わりは選ぶ。' },
-  { max: 80,  label: 'やや陰キャ', desc: '一人の時間で充電するタイプ。人との関わりは選ぶ。' },
-  { max: 90,  label: '陰キャ',     desc: '自分の世界を大切にする。深く狭い関係が性に合っている。' },
-  { max: 100, label: '真の陰キャ', desc: '一人でいることが最も落ち着く。内なる世界が豊か。' },
+  { max: 10,  label: '真の陽キャ',        desc: '人といる時間がエネルギーの源。どんな場でも自然と中心にいる。' },
+  { max: 20,  label: '陽キャ',            desc: '初対面でも壁を感じない。場の空気を明るくする力がある。' },
+  { max: 30,  label: '社交派',            desc: '人と関わるのが得意で、広い人間関係を持ちやすい。' },
+  { max: 40,  label: 'やや社交派',        desc: '基本的には人と関わることを楽しめるが、一人の時間も大切にする。' },
+  { max: 50,  label: '無キャ（陽寄り）',  desc: '状況に応じて社交的にも内向的にもなれる柔軟なタイプ。' },
+  { max: 59,  label: '無キャ（陰寄り）',  desc: '深い関係を少数と築くことを好む。広さより深さ重視。' },
+  { max: 70,  label: 'やや内向派',        desc: '一人の時間で充電するタイプ。人との関わりは選ぶ。' },
+  { max: 80,  label: '内向派',            desc: '静かな環境と少人数での関わりが心地よい。' },
+  { max: 90,  label: '陰キャ',            desc: '自分の世界を大切にする。深く狭い関係が性に合っている。' },
+  { max: 100, label: '生粋の陰キャ',      desc: '一人でいることが最も落ち着く。内なる世界が豊か。' },
 ];
 
 const RESULTS_KEY = 'personality_quiz_results';
@@ -213,14 +213,6 @@ export default function ResultPage() {
           <p className="text-slate-700 leading-relaxed">
             {aboutEntry ? aboutEntry.text : '準備中です。'}
           </p>
-          {lossEntry && (
-            <>
-              <div className="border-t border-slate-100 mt-5 pt-5">
-                <p className="text-sm font-bold text-slate-500 mb-2">💡 損しやすいこと</p>
-                <p className="text-slate-700 leading-relaxed text-sm">{lossEntry.text}</p>
-              </div>
-            </>
-          )}
         </section>
 
         {/* ③ 因子別スコアバーセクション */}
@@ -233,63 +225,87 @@ export default function ResultPage() {
           </div>
         </section>
 
-        {/* ④⑤ パーソナリティ指数（2カラム） */}
+        {/* ④ 陰キャ度スコアセクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-
-            {/* 陰キャ・陽キャ */}
-            <div>
-              <p className="text-sm font-semibold text-slate-500 mb-4 text-center">陰キャ・陽キャ診断</p>
-              <GradientScoreBar
-                score={introvertScore}
-                label={introvertDetail.label}
-                colorFrom="#FF8C00"
-                colorMid="#22C55E"
-                colorTo="#6366F1"
-                leftLabel="陽キャ"
-                rightLabel="陰キャ"
-              />
-            </div>
-
-            {/* 行動スタイル */}
-            <div>
-              <p className="text-sm font-semibold text-slate-500 mb-4 text-center">行動スタイル診断</p>
-              <GradientScoreBar
-                score={impulsivityScore}
-                label={impulsivityLabel}
-                colorFrom="#3B82F6"
-                colorMid="#22C55E"
-                colorTo="#EF4444"
-                leftLabel="慎重"
-                rightLabel="衝動的"
-              />
-            </div>
-
+          <div className="flex items-center gap-3 mb-1">
+            <h2 className="text-lg font-bold text-slate-800">陰キャ・陽キャ診断</h2>
+            <span className={`text-sm font-bold px-3 py-0.5 rounded-full ${
+              introvertScore <= 40
+                ? 'bg-orange-100 text-orange-600'
+                : introvertScore <= 59
+                ? 'bg-green-100 text-green-600'
+                : 'bg-indigo-100 text-indigo-600'
+            }`}>
+              {introvertScore <= 40 ? '陽キャ' : introvertScore <= 59 ? '無キャ' : '陰キャ'}
+            </span>
           </div>
-          {impulsivityScore >= 61 && (
-            <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 leading-relaxed">
-              💡 衝動性が高めの傾向があります。このパターンはADHDの方に多い傾向と似ています。日常生活で気になる場合は、専門家への相談も選択肢の一つです。
-            </div>
-          )}
+          <p className="text-sm text-slate-500 mb-6">内向・外向の傾向を数値で表したものです</p>
+          <GradientScoreBar
+            score={introvertScore}
+            label={introvertDetail.label}
+            description={introvertDetail.desc}
+            colorFrom="#FF8C00"
+            colorMid="#22C55E"
+            colorTo="#6366F1"
+            leftLabel="陽キャ"
+            rightLabel="陰キャ"
+          />
+          <p className="text-xs text-slate-400 mt-4 text-center">平均は約50%です</p>
+          <p className="text-xs text-amber-600 mt-2 text-center">※ この指標は現在調整中です（β版）</p>
         </section>
 
+
+        {/* ⑤ 衝動性スコアセクション */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
+          <h2 className="text-lg font-bold text-slate-800 mb-1">行動スタイル診断</h2>
+          <p className="text-sm text-slate-500 mb-6">行動の計画性と衝動性のバランスを表したものです</p>
+          <GradientScoreBar
+            score={impulsivityScore}
+            label={impulsivityLabel}
+            colorFrom="#3B82F6"
+            colorMid="#22C55E"
+            colorTo="#EF4444"
+            leftLabel="慎重"
+            rightLabel="衝動的"
+          />
+          {impulsivityScore >= 61 && (
+            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 leading-relaxed">
+              💡 衝動性が高めの傾向があります。<br />
+              このパターンはADHDの方に多い傾向と似ています。<br />
+              日常生活で気になる場合は、専門家への相談も選択肢の一つです。
+            </div>
+          )}
+          <p className="mt-4 text-xs text-slate-400 leading-relaxed">
+            ※このスコアは医療的な診断ではありません。あくまで性格傾向の参考値としてご利用ください。
+          </p>
+          <p className="text-xs text-amber-600 mt-2">※ この指標は現在調整中です（β版）</p>
+        </section>
+
+        {/* ⑥ あなたが損しやすいことセクション */}
+        <section className="bg-slate-50 border border-slate-200 rounded-2xl p-6 md:p-8">
+          <h2 className="text-base font-bold text-slate-700 mb-3 flex items-center gap-2">
+            <span className="text-slate-400 text-lg">💡</span>
+            あなたが損しやすいこと
+          </h2>
+          <p className="text-slate-700 leading-relaxed text-sm">{lossEntry ? lossEntry.text : '準備中です。'}</p>
+        </section>
 
         {/* ⑤ 人間関係の傾向セクション */}
         <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
           <h2 className="text-lg font-bold text-slate-800 mb-5">人間関係の傾向</h2>
           {relationshipEntry ? (
-            <div className="space-y-4">
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-sm font-bold text-teal-600 mb-2">👤 あなたが人に与える印象</p>
-                <p className="text-slate-700 text-base leading-relaxed">{relationshipEntry.impression}</p>
+            <div className="space-y-5">
+              <div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2">あなたが人に与える印象</h3>
+                <p className="text-slate-700 text-sm leading-relaxed">{relationshipEntry.impression}</p>
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-sm font-bold text-blue-600 mb-2">🤝 相性がいい人・悪い人</p>
-                <p className="text-slate-700 text-base leading-relaxed">{relationshipEntry.compatibility}</p>
+              <div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2">相性がいい人・悪い人</h3>
+                <p className="text-slate-700 text-sm leading-relaxed">{relationshipEntry.compatibility}</p>
               </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <p className="text-sm font-bold text-amber-600 mb-2">⚠️ 人間関係でやりがちな失敗</p>
-                <p className="text-slate-700 text-base leading-relaxed">{relationshipEntry.failurePattern}</p>
+              <div>
+                <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wide mb-2">人間関係でやりがちな失敗</h3>
+                <p className="text-slate-700 text-sm leading-relaxed">{relationshipEntry.failurePattern}</p>
               </div>
             </div>
           ) : (
@@ -297,37 +313,8 @@ export default function ResultPage() {
           )}
         </section>
 
-        {/* フィードバック */}
-        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8 text-center">
-          <h2 className="text-base font-bold text-slate-700 mb-1">この診断結果はあなたに当てはまっていましたか？</h2>
-          <p className="text-xs text-slate-400 mb-5">フィードバックは診断の改善に役立てます</p>
-          {feedbackSent ? (
-            <p className="text-teal-600 font-semibold text-sm">ありがとうございました 🙏</p>
-          ) : (
-            <>
-              <div className="flex justify-center gap-3 mb-3">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => sendFeedback(n)}
-                    disabled={feedbackSent}
-                    className={`w-11 h-11 rounded-full font-bold text-base border-2 transition-all duration-150
-                      ${feedbackScore === n
-                        ? 'bg-teal-600 border-teal-600 text-white'
-                        : 'border-slate-300 text-slate-600 hover:border-teal-400 hover:text-teal-600'
-                      }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-between text-xs text-slate-400 px-1 max-w-xs mx-auto">
-                <span>全然違う</span>
-                <span>ぴったり</span>
-              </div>
-            </>
-          )}
-        </section>
+        {/* ⑥ 相性セクション */}
+        <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
 
         {/* メール登録 */}
         <section className="bg-blue-50 border border-blue-100 rounded-2xl p-6 md:p-8">
@@ -361,6 +348,38 @@ export default function ResultPage() {
                 {emailStatus === 'loading' ? '登録中...' : '登録する'}
               </button>
             </div>
+          )}
+        </section>
+
+        {/* フィードバック */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8 text-center">
+          <h2 className="text-base font-bold text-slate-700 mb-1">この診断結果はあなたに当てはまっていましたか？</h2>
+          <p className="text-xs text-slate-400 mb-5">フィードバックは診断の改善に役立てます</p>
+          {feedbackSent ? (
+            <p className="text-teal-600 font-semibold text-sm">ありがとうございました 🙏</p>
+          ) : (
+            <>
+              <div className="flex justify-center gap-3 mb-3">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => sendFeedback(n)}
+                    disabled={feedbackSent}
+                    className={`w-11 h-11 rounded-full font-bold text-base border-2 transition-all duration-150
+                      ${feedbackScore === n
+                        ? 'bg-teal-600 border-teal-600 text-white'
+                        : 'border-slate-300 text-slate-600 hover:border-teal-400 hover:text-teal-600'
+                      }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-slate-400 px-1 max-w-xs mx-auto">
+                <span>全然違う</span>
+                <span>ぴったり</span>
+              </div>
+            </>
           )}
         </section>
 
@@ -400,9 +419,6 @@ export default function ResultPage() {
           </div>
         </section>
 
-        {/* 相性セクション */}
-        <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
-
         {/* CTA */}
         <div className="text-center pb-4">
           <Link
@@ -419,7 +435,7 @@ export default function ResultPage() {
       </main>
 
       {/* Footer */}
-      <footer className="sticky bottom-0 z-10 py-3 text-center border-t border-slate-200 bg-white/90 backdrop-blur-sm">
+      <footer className="py-6 text-center border-t border-slate-200 bg-white/50">
         <p className="text-slate-400 text-xs leading-relaxed max-w-xl mx-auto px-4">
           ※ 本診断はクロニンジャーの気質・性格モデルを参考にした自己理解ツールです。医療診断・精神科的診断を行うものではありません。結果に関する不安がある場合は、専門家（医師・カウンセラー）にご相談ください。
         </p>

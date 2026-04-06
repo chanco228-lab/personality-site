@@ -297,37 +297,8 @@ export default function ResultPage() {
           )}
         </section>
 
-        {/* フィードバック */}
-        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8 text-center">
-          <h2 className="text-base font-bold text-slate-700 mb-1">この診断結果はあなたに当てはまっていましたか？</h2>
-          <p className="text-xs text-slate-400 mb-5">フィードバックは診断の改善に役立てます</p>
-          {feedbackSent ? (
-            <p className="text-teal-600 font-semibold text-sm">ありがとうございました 🙏</p>
-          ) : (
-            <>
-              <div className="flex justify-center gap-3 mb-3">
-                {[1, 2, 3, 4, 5].map((n) => (
-                  <button
-                    key={n}
-                    onClick={() => sendFeedback(n)}
-                    disabled={feedbackSent}
-                    className={`w-11 h-11 rounded-full font-bold text-base border-2 transition-all duration-150
-                      ${feedbackScore === n
-                        ? 'bg-teal-600 border-teal-600 text-white'
-                        : 'border-slate-300 text-slate-600 hover:border-teal-400 hover:text-teal-600'
-                      }`}
-                  >
-                    {n}
-                  </button>
-                ))}
-              </div>
-              <div className="flex justify-between text-xs text-slate-400 px-1 max-w-xs mx-auto">
-                <span>全然違う</span>
-                <span>ぴったり</span>
-              </div>
-            </>
-          )}
-        </section>
+        {/* ⑥ 相性セクション */}
+        <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
 
         {/* メール登録 */}
         <section className="bg-blue-50 border border-blue-100 rounded-2xl p-6 md:p-8">
@@ -361,6 +332,38 @@ export default function ResultPage() {
                 {emailStatus === 'loading' ? '登録中...' : '登録する'}
               </button>
             </div>
+          )}
+        </section>
+
+        {/* フィードバック */}
+        <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8 text-center">
+          <h2 className="text-base font-bold text-slate-700 mb-1">この診断結果はあなたに当てはまっていましたか？</h2>
+          <p className="text-xs text-slate-400 mb-5">フィードバックは診断の改善に役立てます</p>
+          {feedbackSent ? (
+            <p className="text-teal-600 font-semibold text-sm">ありがとうございました 🙏</p>
+          ) : (
+            <>
+              <div className="flex justify-center gap-3 mb-3">
+                {[1, 2, 3, 4, 5].map((n) => (
+                  <button
+                    key={n}
+                    onClick={() => sendFeedback(n)}
+                    disabled={feedbackSent}
+                    className={`w-11 h-11 rounded-full font-bold text-base border-2 transition-all duration-150
+                      ${feedbackScore === n
+                        ? 'bg-teal-600 border-teal-600 text-white'
+                        : 'border-slate-300 text-slate-600 hover:border-teal-400 hover:text-teal-600'
+                      }`}
+                  >
+                    {n}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-between text-xs text-slate-400 px-1 max-w-xs mx-auto">
+                <span>全然違う</span>
+                <span>ぴったり</span>
+              </div>
+            </>
           )}
         </section>
 
@@ -400,9 +403,6 @@ export default function ResultPage() {
           </div>
         </section>
 
-        {/* 相性セクション */}
-        <CompatibilitySection userTypeId={personality.id} userTypeName={personality.name} />
-
         {/* CTA */}
         <div className="text-center pb-4">
           <Link
@@ -419,7 +419,7 @@ export default function ResultPage() {
       </main>
 
       {/* Footer */}
-      <footer className="sticky bottom-0 z-10 py-3 text-center border-t border-slate-200 bg-white/90 backdrop-blur-sm">
+      <footer className="py-6 text-center border-t border-slate-200 bg-white/50">
         <p className="text-slate-400 text-xs leading-relaxed max-w-xl mx-auto px-4">
           ※ 本診断はクロニンジャーの気質・性格モデルを参考にした自己理解ツールです。医療診断・精神科的診断を行うものではありません。結果に関する不安がある場合は、専門家（医師・カウンセラー）にご相談ください。
         </p>

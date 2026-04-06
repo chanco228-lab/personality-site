@@ -22,7 +22,7 @@ const rawQuestions: Question[] = [
   { id: 12, text: '困難にぶつかっても、簡単には諦めず続けることが多い', factor: 'P', reversed: false },
 
   // SD (自己志向)
-  { id: 13, text: '失敗したとき、自分より周りや環境のせいだと感じることが少ない', factor: 'SD', reversed: false },
+  { id: 13, text: '自分の将来や目標について、具体的なイメージを持っている', factor: 'SD', reversed: false },
   { id: 14, text: '自分の選択に責任を持ち、結果が悪くても他人や環境のせいにしない', factor: 'SD', reversed: false },
   { id: 15, text: '「どうせ自分には無理」より「やればできる」と考えることのほうが多い', factor: 'SD', reversed: false },
 
