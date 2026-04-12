@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { personalityTypes, FactorType } from '@/data/types';
 import { QuizResults } from '@/data/types';
@@ -13,6 +13,7 @@ import CompatibilitySection from '@/components/CompatibilitySection';
 import GradientScoreBar from '@/components/GradientScoreBar';
 import { encodePass } from '@/lib/pass';
 import { supabase } from '@/lib/supabase';
+import { logEvent } from '@/lib/logger';
 
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 
@@ -45,6 +46,8 @@ export default function ResultPage() {
   const [emailInput, setEmailInput] = useState('');
   const [emailStatus, setEmailStatus] = useState<'idle' | 'loading' | 'done' | 'duplicate' | 'error'>('idle');
   const [emailError, setEmailError] = useState('');
+  const emailSectionRef = useRef<HTMLElement>(null);
+  const emailViewedRef = useRef(false);
 
   const handleCopyPass = (results: QuizResults) => {
     const pass = encodePass(results);
@@ -71,6 +74,23 @@ export default function ResultPage() {
   useEffect(() => {
     const id = localStorage.getItem(RESULT_ID_KEY);
     if (id) setResultId(id);
+  }, []);
+
+  useEffect(() => {
+    const el = emailSectionRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && !emailViewedRef.current) {
+          emailViewedRef.current = true;
+          logEvent('email_form_viewed');
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.5 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
   }, []);
 
   const sendFeedback = (score: number) => {
@@ -109,6 +129,7 @@ export default function ResultPage() {
     });
     if (!error) {
       setEmailStatus('done');
+      logEvent('email_registered');
     } else if (error.code === '23505') {
       setEmailStatus('duplicate');
     } else {
@@ -199,6 +220,40 @@ export default function ResultPage() {
           <p className="text-blue-100 text-base md:text-lg max-w-md mx-auto leading-relaxed">
             {personality.catchphrase}
           </p>
+
+          {/* シェアボタン */}
+          {(() => {
+            const shareText = `私は【${personality.name}】でした！\n陰キャ度${introvertScore}%・衝動性${impulsivityScore}%\nあなたも診断してみて👇\nhttps://personality-site.vercel.app\n#性格診断`;
+            return (
+              <div className="flex items-center justify-center gap-3 mt-6">
+                <a
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => logEvent('x_shared')}
+                  className="inline-flex items-center gap-2 bg-black hover:bg-zinc-800 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-colors"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                  </svg>
+                  Xでシェア
+                </a>
+                <a
+                  href={`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => logEvent('line_shared')}
+                  className="inline-flex items-center gap-2 text-white text-sm font-bold px-5 py-2.5 rounded-full transition-opacity hover:opacity-80"
+                  style={{ backgroundColor: '#06C755' }}
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.477 2 2 6.045 2 11.077c0 4.562 3.253 8.376 7.656 9.083.334.07.79.217.905.497.104.256.068.657.033.916l-.147.864c-.044.262-.206 1.023.896.558 1.101-.466 5.942-3.5 8.107-5.992C20.917 15.149 22 13.209 22 11.077 22 6.045 17.523 2 12 2z" />
+                  </svg>
+                  LINEでシェア
+                </a>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
@@ -330,7 +385,7 @@ export default function ResultPage() {
         </section>
 
         {/* メール登録 */}
-        <section className="bg-blue-50 border border-blue-100 rounded-2xl p-6 md:p-8">
+        <section ref={emailSectionRef} className="bg-blue-50 border border-blue-100 rounded-2xl p-6 md:p-8">
           <h2 className="text-base font-bold text-slate-700 mb-1 flex items-center gap-2">
             <span className="text-lg">💡</span>
             さらに詳しい診断結果を知りたい方へ

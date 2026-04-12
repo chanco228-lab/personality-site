@@ -38,12 +38,17 @@ const rawQuestions: Question[] = [
 ];
 
 export function getShuffledQuestions(): Question[] {
-  const shuffled = [...rawQuestions];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  const factors = ['NS', 'HA', 'RD', 'P', 'SD', 'CO', 'ST'];
+  const byFactor: Record<string, Question[]> = {};
+  for (const f of factors) byFactor[f] = rawQuestions.filter((q) => q.factor === f);
+  const maxLen = Math.max(...factors.map((f) => byFactor[f].length));
+  const result: Question[] = [];
+  for (let i = 0; i < maxLen; i++) {
+    for (const f of factors) {
+      if (byFactor[f][i]) result.push(byFactor[f][i]);
+    }
   }
-  return shuffled;
+  return result;
 }
 
 export default rawQuestions;

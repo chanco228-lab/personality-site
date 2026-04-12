@@ -6,6 +6,7 @@ import { getShuffledQuestions } from '@/data/questions';
 import { Question } from '@/data/types';
 import { calculateScores, determineType, calculateIntrovertScore } from '@/lib/scoring';
 import { supabase } from '@/lib/supabase';
+import { logEvent } from '@/lib/logger';
 import QuizCard from '@/components/QuizCard';
 import ProgressBar from '@/components/ProgressBar';
 
@@ -51,6 +52,7 @@ export default function QuizPage() {
     };
     setState(initialState);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(initialState));
+    logEvent('quiz_start');
     setShowNotice(true);
   }, []);
 
@@ -61,6 +63,8 @@ export default function QuizPage() {
     const questionId = state.questions[state.currentIndex].id;
     const newAnswers = { ...state.answers, [questionId]: value };
     const nextIndex = state.currentIndex + 1;
+
+    logEvent('quiz_step', state.currentIndex + 1);
 
     if (nextIndex >= state.questions.length) {
       // Quiz complete - calculate results
@@ -84,6 +88,7 @@ export default function QuizPage() {
         ns: scores.NS, ha: scores.HA, rd: scores.RD,
         sd: scores.SD, co: scores.CO, st: scores.ST,
       });
+      logEvent('quiz_complete');
       (async () => {
         const { data } = await supabase.from('results_v2').insert({
           type_id: typeId,
