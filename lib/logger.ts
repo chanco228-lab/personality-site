@@ -22,11 +22,12 @@ export function logEvent(eventName: string, step?: number) {
 export function deleteLogStep(step: number): Promise<void> {
   const sessionId = sessionStorage.getItem(SESSION_KEY);
   if (!sessionId) return Promise.resolve();
-  return supabase
-    .from('logs')
-    .delete()
-    .eq('session_id', sessionId)
-    .eq('event_name', 'quiz_step')
-    .eq('step', step)
-    .then(() => {});
+  return Promise.resolve(
+    supabase
+      .from('logs')
+      .delete()
+      .eq('session_id', sessionId)
+      .eq('event_name', 'quiz_step')
+      .eq('step', step)
+  ).then(() => {});
 }
