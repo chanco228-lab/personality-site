@@ -6,7 +6,7 @@ import { getShuffledQuestions } from '@/data/questions';
 import { Question } from '@/data/types';
 import { calculateScores, determineType, calculateIntrovertScore } from '@/lib/scoring';
 import { supabase } from '@/lib/supabase';
-import { logEvent } from '@/lib/logger';
+import { logEvent, deleteLogStep } from '@/lib/logger';
 import QuizCard from '@/components/QuizCard';
 import ProgressBar from '@/components/ProgressBar';
 
@@ -64,7 +64,9 @@ export default function QuizPage() {
     const newAnswers = { ...state.answers, [questionId]: value };
     const nextIndex = state.currentIndex + 1;
 
-    logEvent('quiz_step', state.currentIndex + 1);
+    deleteLogStep(state.currentIndex + 1).then(() => {
+      logEvent('quiz_step', state.currentIndex + 1);
+    });
 
     if (nextIndex >= state.questions.length) {
       // Quiz complete - calculate results
@@ -123,6 +125,9 @@ export default function QuizPage() {
     if (!state || state.currentIndex === 0) return;
 
     const prevIndex = state.currentIndex - 1;
+    // 戻る先のstep（prevIndex + 1 = currentIndex）のログを削除
+    deleteLogStep(state.currentIndex);
+
     const prevQuestion = state.questions[prevIndex];
     const newAnswers = { ...state.answers };
     delete newAnswers[prevQuestion.id];

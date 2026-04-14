@@ -77,6 +77,7 @@ export default function ResultPage() {
   }, []);
 
   useEffect(() => {
+    if (!results) return;
     const el = emailSectionRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -91,7 +92,7 @@ export default function ResultPage() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [results]);
 
   const sendFeedback = (score: number) => {
     if (!results || feedbackSent) return;
