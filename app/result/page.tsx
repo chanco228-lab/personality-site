@@ -224,11 +224,15 @@ export default function ResultPage() {
 
           {/* シェアボタン */}
           {(() => {
-            const shareText = `私は【${personality.name}】でした！\n陰キャ度${introvertScore}%・衝動性${impulsivityScore}%\nあなたも診断してみて👇\nhttps://personality-site.vercel.app\n#性格診断`;
+            const xIntrovertLabel = introvertScore < 40
+              ? `陽キャ度${100 - introvertScore}%`
+              : `陰キャ度${introvertScore}%`;
+            const xShareText = `性格診断したら【${personality.name}】だった\n${xIntrovertLabel}は高い？低い？\nみんなも診断してみて、タイプ教えて👇\n#性格診断\npersonality-site.vercel.app`;
+            const lineShareText = `性格診断したら陰キャ度${introvertScore}%、【${personality.name}】って出た\nhttps://personality-site.vercel.app`;
             return (
               <div className="flex items-center justify-center gap-3 mt-6">
                 <a
-                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}`}
+                  href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(xShareText)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => logEvent('x_shared')}
@@ -240,7 +244,7 @@ export default function ResultPage() {
                   Xでシェア
                 </a>
                 <a
-                  href={`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`}
+                  href={`https://line.me/R/msg/text/?${encodeURIComponent(lineShareText)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => logEvent('line_shared')}

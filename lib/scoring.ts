@@ -1,9 +1,16 @@
 import { FactorScores, FactorLevel, personalityTypes } from '@/data/types';
 
-// NS/HA/RD: +4以上=high, -4以下=low, その間=mid
+// NS/HA: +4以上=high, -4以下=low, その間=mid
 function getLevel(score: number): FactorLevel {
   if (score >= 4) return 'high';
   if (score <= -4) return 'low';
+  return 'mid';
+}
+
+// RD: +3以上=high, -3以下=low, その間=mid
+function getRDLevel(score: number): FactorLevel {
+  if (score >= 3) return 'high';
+  if (score <= -3) return 'low';
   return 'mid';
 }
 
@@ -26,7 +33,7 @@ export function calculateScores(
 export function determineType(scores: FactorScores): string {
   const ns = getLevel(scores.NS);
   const ha = getLevel(scores.HA);
-  const rd = getLevel(scores.RD);
+  const rd = getRDLevel(scores.RD);
   const p: 'high' | 'low' = scores.P >= 0 ? 'high' : 'low';
 
   const matched = personalityTypes.find(
