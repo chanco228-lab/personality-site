@@ -210,10 +210,7 @@ export default function ResultPage() {
       <div className="py-12 px-4 text-center" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
         <div className="max-w-2xl mx-auto">
           <div className="flex flex-col items-center gap-2 mb-3">
-            <p className="text-teal-200 text-sm font-semibold uppercase tracking-widest">診断結果</p>
-            <span className="inline-flex items-center gap-1.5 bg-amber-400 text-amber-900 text-sm font-extrabold px-4 py-1.5 rounded-full shadow-md ring-2 ring-amber-300">
-              <span className="text-base">⚠️</span> β版 ー 随時更新
-            </span>
+            <p className="text-teal-200 text-sm font-semibold uppercase tracking-widest">TC7診断 結果</p>
           </div>
           <h1 className="text-3xl md:text-5xl font-bold text-white mb-3">
             {personality.name}
@@ -227,8 +224,8 @@ export default function ResultPage() {
             const xIntrovertLabel = introvertScore < 40
               ? `陽キャ度${100 - introvertScore}%`
               : `陰キャ度${introvertScore}%`;
-            const xShareText = `性格診断したら【${personality.name}】だった\n${xIntrovertLabel}は高い？低い？\nみんなも診断してみて、タイプ教えて👇\n#性格診断\npersonality-site.vercel.app`;
-            const lineShareText = `性格診断したら陰キャ度${introvertScore}%、【${personality.name}】って出た\nhttps://personality-site.vercel.app`;
+            const xShareText = `TC7診断したら【${personality.name}】だった\n${xIntrovertLabel}は高い？低い？\nみんなも診断してみて、タイプ教えて👇\n#TC7診断\npersonality-site.vercel.app`;
+            const lineShareText = `TC7診断したら陰キャ度${introvertScore}%、【${personality.name}】って出た\nhttps://personality-site.vercel.app`;
             return (
               <div className="flex items-center justify-center gap-3 mt-6">
                 <a
