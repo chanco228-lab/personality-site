@@ -12,7 +12,7 @@ export default function ProgressBar({ current, total }: ProgressBarProps) {
     <div className="w-full">
       <div className="flex justify-between items-center mb-2">
         <span className="text-sm font-medium text-slate-600">
-          <span className="text-teal-600 font-bold text-base">{current}</span>
+          <span className="text-orange-500 font-bold text-base">{current}</span>
           <span className="text-slate-400"> / {total}</span>
         </span>
         <span className="text-sm text-slate-500">{percentage}%</span>
@@ -22,7 +22,7 @@ export default function ProgressBar({ current, total }: ProgressBarProps) {
           className="h-2.5 rounded-full transition-all duration-500 ease-out"
           style={{
             width: `${percentage}%`,
-            background: 'linear-gradient(90deg, #0f4c81 0%, #2d9596 100%)',
+            background: 'linear-gradient(90deg, #F97316 0%, #fb923c 100%)',
           }}
         />
       </div>

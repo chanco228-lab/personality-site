@@ -43,8 +43,8 @@ export default function RadarChartComponent({ scores }: RadarChartProps) {
           <Radar
             name="スコア"
             dataKey="value"
-            stroke="#2d9596"
-            fill="#2d9596"
+            stroke="#F97316"
+            fill="#F97316"
             fillOpacity={0.35}
             strokeWidth={2}
           />

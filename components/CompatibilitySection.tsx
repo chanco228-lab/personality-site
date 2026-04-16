@@ -21,7 +21,7 @@ export default function CompatibilitySection({ userTypeId, userTypeName }: Props
 
   const scoreColor =
     result === null ? ''
-    : result.score >= 81 ? 'text-teal-600'
+    : result.score >= 81 ? 'text-orange-500'
     : result.score >= 61 ? 'text-blue-600'
     : result.score >= 41 ? 'text-amber-600'
     : 'text-slate-500';
@@ -51,7 +51,7 @@ export default function CompatibilitySection({ userTypeId, userTypeName }: Props
             value={otherTypeId}
             onChange={(id) => setOtherTypeId(id)}
             showCatchphrase={false}
-            inputClassName="w-full border border-slate-300 rounded-xl px-4 py-3 pr-8 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400"
+            inputClassName="w-full border border-slate-300 rounded-xl px-4 py-3 pr-8 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
           />
         </div>
       </div>
@@ -68,7 +68,7 @@ export default function CompatibilitySection({ userTypeId, userTypeName }: Props
           <div className="space-y-2 border-t border-slate-200 pt-4">
             {result.comments.map((c, i) => (
               <p key={i} className="text-slate-600 text-sm leading-relaxed flex gap-1.5">
-                <span className="text-teal-400 mt-0.5 shrink-0">●</span>
+                <span className="text-orange-400 mt-0.5 shrink-0">●</span>
                 {c}
               </p>
             ))}

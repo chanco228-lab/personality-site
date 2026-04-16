@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(npm run:*)",
-      "WebFetch(domain:claude.ai)"
+      "WebFetch(domain:claude.ai)",
+      "Bash(find /c/Users/platf/personality-site/components -type f -name *.tsx -o -name *.ts)",
+      "Bash(curl:*)",
+      "Bash(npx next:*)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(kill 13524)",
+      "Bash(taskkill //PID 22780 //F)",
+      "Bash(taskkill //PID 13524 //F)"
     ]
   }
 }

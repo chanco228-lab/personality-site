@@ -63,7 +63,7 @@ export default function TypeCombobox({
           placeholder={placeholder}
           className={
             inputClassName ??
-            'w-full border border-slate-300 rounded-xl px-4 py-3 pr-10 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-teal-400'
+            'w-full border border-slate-300 rounded-xl px-4 py-3 pr-10 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400'
           }
         />
         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-xs">
@@ -76,7 +76,7 @@ export default function TypeCombobox({
           {filtered.map((t) => (
             <li
               key={t.id}
-              className="px-4 py-2.5 text-sm cursor-pointer hover:bg-teal-50 flex items-baseline gap-2"
+              className="px-4 py-2.5 text-sm cursor-pointer hover:bg-orange-50 flex items-baseline gap-2"
               onMouseDown={() => handleSelect(t.id)}
             >
               <span className="font-medium text-slate-700">{t.name}</span>

@@ -177,7 +177,8 @@ export default function QuizPage() {
           </p>
           <button
             onClick={() => setShowNotice(false)}
-            className="w-full bg-gradient-to-r from-teal-600 to-blue-700 text-white font-bold px-6 py-3 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300"
+            className="w-full text-white font-bold px-6 py-3 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300"
+            style={{ backgroundColor: '#F97316' }}
           >
             診断を始める
           </button>

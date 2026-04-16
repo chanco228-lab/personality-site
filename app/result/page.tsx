@@ -8,7 +8,6 @@ import { getScoreLevel, calculateIntrovertScore, calculateImpulsivityScore } fro
 import ScoreBar from '@/components/ScoreBar';
 import { aboutTexts } from '@/data/about';
 import { relationshipTexts } from '@/data/relationships';
-import { lossTexts } from '@/data/losses';
 import CompatibilitySection from '@/components/CompatibilitySection';
 import GradientScoreBar from '@/components/GradientScoreBar';
 import { encodePass } from '@/lib/pass';
@@ -189,14 +188,8 @@ export default function ResultPage() {
     impulsivityScore <= 60 ? '柔軟派' :
     impulsivityScore <= 80 ? '衝動的' : '本能で生きてる';
 
-  const stLevel = getScoreLevel(scores.ST);
-
   const aboutEntry = aboutTexts.find(
     (a) => a.typeId === personality.id && a.sdLevel === sdLevel
-  );
-
-  const lossEntry = lossTexts.find(
-    (l) => l.typeId === personality.id && l.stLevel === stLevel
   );
 
   const relationshipEntry = relationshipTexts.find(
@@ -270,14 +263,10 @@ export default function ResultPage() {
           <p className="text-slate-700 leading-relaxed">
             {aboutEntry ? aboutEntry.text : '準備中です。'}
           </p>
-          {lossEntry && (
-            <>
-              <div className="border-t border-slate-100 mt-5 pt-5">
-                <p className="text-sm font-bold text-slate-500 mb-2">💡 損しやすいこと</p>
-                <p className="text-slate-700 leading-relaxed text-sm">{lossEntry.text}</p>
-              </div>
-            </>
-          )}
+          <div className="border-t border-slate-100 mt-5 pt-5">
+            <p className="text-sm font-bold text-slate-500 mb-2">💡 損しやすいこと</p>
+            <p className="text-slate-700 leading-relaxed text-sm">{personality.loss}</p>
+          </div>
         </section>
 
         {/* ③ 因子別スコアバーセクション */}

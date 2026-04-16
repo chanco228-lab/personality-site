@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { personalityTypes } from '@/data/types';
 
-const MAIN_COLOR = '#1D9E75';
+const MAIN_COLOR = '#F97316';
 const CARD_W = 210;
 const CARD_GAP = 12;
 const CARD_UNIT = CARD_W + CARD_GAP;
@@ -9,9 +9,9 @@ function getIntrovertLabel(ns: string, ha: string, rd: string) {
   const v = (l: string) => (l === 'high' ? 6 : l === 'low' ? -6 : 0);
   const raw = v(ha) * 2.0 + v(ns) * -1.75 + v(rd) * -1.0;
   const score = ((raw + 28.5) / 57) * 100;
-  if (score < 40) return { label: '陽キャ', color: '#D97706', bg: '#FEF3C7' };
+  if (score < 40) return { label: '陽キャ', color: '#F97316', bg: '#FFF7ED' };
   if (score <= 60) return { label: '無キャ',  color: '#6B7280', bg: '#F3F4F6' };
-  return              { label: '陰キャ', color: '#4F46E5', bg: '#EEF2FF' };
+  return              { label: '陰キャ', color: '#3B82F6', bg: '#EFF6FF' };
 }
 
 const ROWS = [
@@ -44,7 +44,7 @@ export default function Home() {
       <section className="flex flex-col items-center text-center px-5 pt-20 pb-10">
         <span
           className="inline-block text-xs font-bold tracking-widest uppercase px-4 py-1.5 rounded-full border mb-8"
-          style={{ color: MAIN_COLOR, borderColor: MAIN_COLOR, backgroundColor: '#f0fdf8' }}
+          style={{ color: MAIN_COLOR, borderColor: MAIN_COLOR, backgroundColor: '#FFF7ED' }}
         >
           TC7診断 · 54 TYPES
         </span>
