@@ -89,7 +89,7 @@ export async function GET(req: NextRequest) {
     };
     for (const f of factorKeys) {
       const col = colMap[f];
-      const vals = resultRows.map((r) => r[col]).filter((v) => v != null) as number[];
+      const vals = resultRows.map((r) => (r as Record<string, unknown>)[col]).filter((v) => v != null) as number[];
       factorAvgScores[f] = vals.length > 0
         ? Math.round((vals.reduce((s, v) => s + v, 0) / vals.length) * 10) / 10
         : 0;
