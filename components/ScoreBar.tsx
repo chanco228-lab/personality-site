@@ -49,7 +49,7 @@ export default function ScoreBar({ factor, score }: ScoreBarProps) {
           className="absolute w-4 h-4 rounded-full shadow border-2 border-white transition-all duration-700 ease-out -translate-x-1/2"
           style={{
             left: `${pct}%`,
-            backgroundColor: score > 0 ? '#F97316' : score < 0 ? '#3B82F6' : '#9CA3AF',
+            background: 'linear-gradient(135deg, #2d9596, #0f4c81)',
           }}
         />
       </div>

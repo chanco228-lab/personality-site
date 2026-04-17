@@ -65,7 +65,7 @@ export default function QuizPage() {
     const nextIndex = state.currentIndex + 1;
 
     deleteLogStep(state.currentIndex + 1).then(() => {
-      logEvent('quiz_step', state.currentIndex + 1);
+      logEvent('quiz_step', state.currentIndex + 1, value);
     });
 
     if (nextIndex >= state.questions.length) {
@@ -177,8 +177,7 @@ export default function QuizPage() {
           </p>
           <button
             onClick={() => setShowNotice(false)}
-            className="w-full text-white font-bold px-6 py-3 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300"
-            style={{ backgroundColor: '#F97316' }}
+            className="w-full bg-gradient-to-r from-teal-600 to-blue-700 text-white font-bold px-6 py-3 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300"
           >
             診断を始める
           </button>

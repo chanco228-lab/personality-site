@@ -312,7 +312,7 @@ export default function ResultPage() {
             </div>
 
           </div>
-          {impulsivityScore >= 61 && (
+          {impulsivityScore >= 71 && (
             <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 leading-relaxed">
               💡 衝動性が高めの傾向があります。このパターンはADHDの方に多い傾向と似ています。日常生活で気になる場合は、専門家への相談も選択肢の一つです。
             </div>

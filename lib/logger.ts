@@ -11,11 +11,12 @@ function getSessionId(): string {
   return id;
 }
 
-export function logEvent(eventName: string, step?: number) {
+export function logEvent(eventName: string, step?: number, value?: number) {
   supabase.from('logs').insert({
     session_id: getSessionId(),
     event_name: eventName,
     ...(step !== undefined ? { step } : {}),
+    ...(value !== undefined ? { value } : {}),
   }).then();
 }
 

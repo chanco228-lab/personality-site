@@ -38,7 +38,7 @@ export default function QuizCard({ questionText, questionIndex, onAnswer }: Quiz
   return (
     <div className="w-full max-w-2xl mx-auto">
       <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-6">
-        <div className="text-xs font-semibold text-orange-500 uppercase tracking-widest mb-3">
+        <div className="text-xs font-semibold text-teal-500 uppercase tracking-widest mb-3">
           Q{questionIndex + 1}
         </div>
         <p className="text-lg md:text-xl font-semibold text-slate-800 leading-relaxed">
@@ -59,10 +59,10 @@ export default function QuizCard({ questionText, questionIndex, onAnswer }: Quiz
                 transition-all duration-200 font-medium
                 ${
                   isSelected
-                    ? 'border-orange-500 bg-orange-50 text-orange-700 scale-[1.02] shadow-md'
+                    ? 'border-teal-500 bg-teal-50 text-teal-700 scale-[1.02] shadow-md'
                     : selected !== null
                     ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-orange-400 hover:bg-orange-50 hover:scale-[1.01] hover:shadow-sm cursor-pointer'
+                    : 'border-slate-200 bg-white text-slate-700 hover:border-teal-400 hover:bg-teal-50 hover:scale-[1.01] hover:shadow-sm cursor-pointer'
                 }
               `}
             >
@@ -71,10 +71,10 @@ export default function QuizCard({ questionText, questionIndex, onAnswer }: Quiz
                   flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
                   ${
                     isSelected
-                      ? 'bg-orange-500 text-white'
+                      ? 'bg-teal-500 text-white'
                       : selected !== null
                       ? 'bg-slate-200 text-slate-400'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-orange-100'
+                      : 'bg-slate-100 text-slate-500 group-hover:bg-teal-100'
                   }
                 `}
               >
