@@ -126,25 +126,13 @@ export default function ResultPage() {
     if (!results || feedbackSent) return;
     setFeedbackScore(score);
     setFeedbackSent(true);
-    const quizVersion = localStorage.getItem(VERSION_KEY) ?? 'v2';
-    if (quizVersion === 'v3') {
-      supabase.from('feedback_v3').insert({
-        result_id: resultId,
-        type_id: results.typeId,
-        rating: score,
-      }).then();
-    } else {
-      const introvertScore = calculateIntrovertScore({
-        ns: results.scores.NS, ha: results.scores.HA, rd: results.scores.RD,
-        sd: results.scores.SD, co: results.scores.CO, st: results.scores.ST,
-      });
-      supabase.from('feedback_v2').insert({
-        result_id: resultId,
-        type_id: results.typeId,
-        introvert_score: introvertScore,
-        score,
-      }).then();
-    }
+    supabase.from('feedback_v3').insert({
+      result_id: resultId,
+      type_id: results.typeId,
+      rating: score,
+    }).then(({ error }) => {
+      if (error) console.error('[feedback_v3 insert failed]', JSON.stringify(error));
+    });
   };
 
   const handleEmailSignup = async () => {
