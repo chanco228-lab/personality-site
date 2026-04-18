@@ -56,7 +56,7 @@ export default function GradientScoreBar({
 
       {/* Interpretation */}
       <div className="bg-bg border-2 border-ink rounded-[10px] px-4 py-3">
-        <p className="font-black text-[16px] tracking-tight mb-1">「{label}」</p>
+        <p className="font-bold text-[16px] tracking-tight mb-1 text-ink/70">「{label}」</p>
         {description && <p className="text-[13px] leading-[1.6]" style={{ color: '#2A2A2A' }}>{description}</p>}
       </div>
     </div>

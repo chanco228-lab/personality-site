@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FactorType, FACTOR_LABELS } from '@/data/types';
 
 type ScoreBarProps = {
@@ -30,24 +30,36 @@ const FACTOR_COLOR: Record<FactorType, string> = {
 };
 
 export default function ScoreBar({ factor, score, delay = 0 }: ScoreBarProps) {
-  const [mounted, setMounted] = useState(false);
+  const [animated, setAnimated] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setMounted(true), delay);
-    return () => clearTimeout(t);
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          const t = setTimeout(() => setAnimated(true), delay);
+          observer.disconnect();
+          return () => clearTimeout(t);
+        }
+      },
+      { threshold: 0.3 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
   }, [delay]);
 
   const badgeCls = FACTOR_BADGE[factor];
-  // 正負どちらも因子カラーを使用
   const fillColor = FACTOR_COLOR[factor];
 
   // score: -9 to +9. 0 is at 50%.
-  const dotPct = mounted ? ((score + 9) / 18) * 100 : 50;
+  const dotPct = animated ? ((score + 9) / 18) * 100 : 50;
   const fillLeft  = score >= 0 ? 50 : dotPct;
-  const fillWidth = mounted ? Math.abs(score / 18) * 100 : 0;
+  const fillWidth = animated ? Math.abs(score / 18) * 100 : 0;
 
   return (
-    <div className="flex items-center gap-3 w-full">
+    <div ref={ref} className="flex items-center gap-3 w-full">
       {/* Left: badge + name */}
       <div className="flex items-center gap-2 shrink-0" style={{ width: 130 }}>
         <span className={`font-mono text-[11px] font-bold px-[6px] py-[2px] rounded-[4px] shrink-0 ${badgeCls}`}>
@@ -68,7 +80,7 @@ export default function ScoreBar({ factor, score, delay = 0 }: ScoreBarProps) {
             left: `${fillLeft}%`,
             width: `${fillWidth}%`,
             background: fillColor,
-            transition: `width 0.6s ease-out ${delay}ms, left 0.6s ease-out ${delay}ms`,
+            transition: 'width 0.6s ease-out, left 0.6s ease-out',
           }}
         />
 
@@ -84,7 +96,7 @@ export default function ScoreBar({ factor, score, delay = 0 }: ScoreBarProps) {
           style={{
             left: `${dotPct}%`,
             transform: 'translateX(-50%)',
-            transition: `left 0.6s ease-out ${delay}ms`,
+            transition: 'left 0.6s ease-out',
             zIndex: 2,
           }}
         />

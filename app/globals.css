@@ -75,3 +75,10 @@ body {
   .hero-cta { box-shadow: 4px 4px 0 #0E0E0E; }
   .hero-cta:hover { box-shadow: 6px 6px 0 #0E0E0E; }
 }
+
+/* note previewぼかしテキスト */
+.blurred-text {
+  filter: blur(4px);
+  user-select: none;
+  pointer-events: none;
+}

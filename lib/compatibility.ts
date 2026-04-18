@@ -156,3 +156,33 @@ export function computeCompatibility(
 
   return { score, label: getLabel(score), comments };
 }
+
+export type CompatibilityRank = {
+  typeId: string;
+  name: string;
+  score: number;
+};
+
+export function getTop3Compatible(userTypeId: string): CompatibilityRank[] {
+  return personalityTypes
+    .filter((t) => t.id !== userTypeId)
+    .map((t) => ({
+      typeId: t.id,
+      name: t.name,
+      score: computeCompatibility(userTypeId, t.id).score,
+    }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3);
+}
+
+export function getBottom3Compatible(userTypeId: string): CompatibilityRank[] {
+  return personalityTypes
+    .filter((t) => t.id !== userTypeId)
+    .map((t) => ({
+      typeId: t.id,
+      name: t.name,
+      score: computeCompatibility(userTypeId, t.id).score,
+    }))
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3);
+}
