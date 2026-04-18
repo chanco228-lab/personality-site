@@ -19,64 +19,69 @@ export default function CompatibilitySection({ userTypeId, userTypeName }: Props
 
   const result = otherTypeId ? computeCompatibility(userTypeId, otherTypeId) : null;
 
-  const scoreColor =
+  const scoreBg =
     result === null ? ''
-    : result.score >= 81 ? 'text-orange-500'
-    : result.score >= 61 ? 'text-blue-600'
-    : result.score >= 41 ? 'text-amber-600'
-    : 'text-slate-500';
+    : result.score >= 81 ? 'bg-coral text-paper'
+    : result.score >= 61 ? 'bg-turq text-paper'
+    : result.score >= 41 ? 'bg-yellow text-ink'
+    : 'bg-paper text-ink';
 
   return (
-    <section className="bg-white rounded-2xl shadow-sm p-6 md:p-8">
-      <h2 className="text-lg font-bold text-slate-800 mb-1">相性を調べる</h2>
-      <p className="text-slate-500 text-sm mb-5">あなたのタイプを起点に比較します</p>
+    <section
+      className="bg-paper border-2 border-ink rounded-[20px] p-6 md:p-8"
+      style={{ boxShadow: '6px 6px 0 #0E0E0E' }}
+    >
+      <div className="inline-flex items-center gap-[10px] font-mono text-[13px] font-bold uppercase tracking-[0.1em] mb-3">
+        <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
+        COMPATIBILITY
+      </div>
+      <h2 className="font-black text-[22px] tracking-tight mb-1">相性を調べる</h2>
+      <p className="text-[14px] mb-6" style={{ color: '#2A2A2A' }}>あなたのタイプを起点に比較します</p>
 
-      <div className="grid grid-cols-2 gap-3 mb-4">
-        {/* 左：診断済みタイプ（固定） */}
+      <div className="grid grid-cols-2 gap-3 mb-5">
+        {/* あなた（固定） */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
-            あなた
-          </label>
-          <div className="w-full border border-slate-200 bg-slate-50 rounded-xl px-4 py-3 text-slate-700 text-sm select-none">
+          <label className="block font-mono text-[11px] font-bold uppercase tracking-[0.08em] mb-2 text-ink/50">あなた</label>
+          <div className="w-full border-2 border-ink rounded-[10px] px-4 py-3 text-[14px] font-bold bg-bg select-none">
             {userTypeName}
           </div>
         </div>
-
-        {/* 右：比較対象（コンボボックス） */}
+        {/* 比較対象 */}
         <div>
-          <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">
-            比較するタイプ
-          </label>
+          <label className="block font-mono text-[11px] font-bold uppercase tracking-[0.08em] mb-2 text-ink/50">比較するタイプ</label>
           <TypeCombobox
             value={otherTypeId}
             onChange={(id) => setOtherTypeId(id)}
             showCatchphrase={false}
-            inputClassName="w-full border border-slate-300 rounded-xl px-4 py-3 pr-8 text-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400"
+            inputClassName="w-full border-2 border-ink rounded-[10px] px-4 py-3 pr-8 text-[14px] font-bold bg-paper focus:outline-none focus:ring-2 focus:ring-yellow"
           />
         </div>
       </div>
 
       {result && otherType ? (
-        <div className="rounded-xl border border-slate-100 bg-slate-50 p-5">
-          <p className="text-center text-sm font-bold text-slate-600 mb-3">
-            {userTypeName} × {otherType.name}
-          </p>
-          <div className="text-center mb-4">
-            <span className={`text-5xl font-bold ${scoreColor}`}>{result.score}%</span>
-            <p className="mt-1 text-base font-semibold text-slate-700">「{result.label}」</p>
+        <div className="border-2 border-ink rounded-[14px] overflow-hidden">
+          <div className={`px-5 py-4 text-center border-b-2 border-ink ${scoreBg}`}>
+            <p className="font-mono text-[12px] font-bold mb-2 opacity-70">
+              {userTypeName} × {otherType.name}
+            </p>
+            <span className="font-mono font-black text-[48px] leading-none">{result.score}%</span>
+            <p className="font-black text-[16px] mt-1">「{result.label}」</p>
           </div>
-          <div className="space-y-2 border-t border-slate-200 pt-4">
+          <div className="p-5 space-y-3 bg-paper">
             {result.comments.map((c, i) => (
-              <p key={i} className="text-slate-600 text-sm leading-relaxed flex gap-1.5">
-                <span className="text-orange-400 mt-0.5 shrink-0">●</span>
+              <p key={i} className="text-[14px] leading-[1.6] flex gap-2">
+                <span className="text-coral mt-[3px] shrink-0">●</span>
                 {c}
               </p>
             ))}
           </div>
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center">
-          <p className="text-slate-300 text-sm">比較するタイプを選ぶと結果が表示されます</p>
+        <div
+          className="rounded-[14px] p-5 text-center"
+          style={{ border: '2px dashed rgba(14,14,14,0.2)' }}
+        >
+          <p className="text-[13px]" style={{ color: '#2A2A2A', opacity: 0.5 }}>比較するタイプを選ぶと結果が表示されます</p>
         </div>
       )}
     </section>

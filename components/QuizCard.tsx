@@ -6,24 +6,37 @@ type Choice = {
   label: string;
   text: string;
   value: number;
+  bg: string;
+  color: string;
 };
 
 const choices: Choice[] = [
-  { label: 'A', text: 'かなりそう', value: 3 },
-  { label: 'B', text: 'わりとそう', value: 2 },
-  { label: 'C', text: 'どちらかといえばそう', value: 1 },
-  { label: 'D', text: 'どちらかといえば違う', value: -1 },
-  { label: 'E', text: 'わりと違う', value: -2 },
-  { label: 'F', text: 'かなり違う', value: -3 },
+  { label: 'A', text: 'かなりそう',           value:  3, bg: '#FF6B57', color: '#FFF' },
+  { label: 'B', text: 'わりとそう',           value:  2, bg: '#FF6B57', color: '#FFF' },
+  { label: 'C', text: 'どちらかといえばそう', value:  1, bg: '#FF6B57', color: '#FFF' },
+  { label: 'D', text: 'どちらかといえば違う', value: -1, bg: '#F5E12B', color: '#0E0E0E' },
+  { label: 'E', text: 'わりと違う',           value: -2, bg: '#F5E12B', color: '#0E0E0E' },
+  { label: 'F', text: 'かなり違う',           value: -3, bg: '#F5E12B', color: '#0E0E0E' },
 ];
+
+const FACTOR_BADGE: Record<string, string> = {
+  NS: 'bg-coral text-paper',
+  HA: 'bg-lav text-ink',
+  RD: 'bg-hpink text-ink',
+  P:  'bg-yellow text-ink',
+  SD: 'bg-turq text-paper',
+  CO: 'bg-hgreen text-ink',
+  ST: 'bg-ink text-paper',
+};
 
 type QuizCardProps = {
   questionText: string;
   questionIndex: number;
+  factor?: string;
   onAnswer: (value: number) => void;
 };
 
-export default function QuizCard({ questionText, questionIndex, onAnswer }: QuizCardProps) {
+export default function QuizCard({ questionText, questionIndex, factor, onAnswer }: QuizCardProps) {
   const [selected, setSelected] = useState<number | null>(null);
 
   const handleSelect = (value: number) => {
@@ -32,21 +45,32 @@ export default function QuizCard({ questionText, questionIndex, onAnswer }: Quiz
     setTimeout(() => {
       onAnswer(value);
       setSelected(null);
-    }, 400);
+    }, 350);
   };
 
+  const badgeCls = factor ? (FACTOR_BADGE[factor] ?? 'bg-ink text-paper') : 'bg-ink text-paper';
+
   return (
-    <div className="w-full max-w-2xl mx-auto">
-      <div className="bg-white rounded-2xl shadow-lg p-6 md:p-8 mb-6">
-        <div className="text-xs font-semibold text-teal-500 uppercase tracking-widest mb-3">
+    <div className="w-full max-w-[640px] mx-auto">
+      {/* Question card */}
+      <div
+        className="bg-paper border-2 border-ink rounded-[20px] px-6 py-7 mb-4"
+        style={{ boxShadow: '8px 8px 0 #0E0E0E' }}
+      >
+        <span className={`font-mono text-[12px] font-bold px-3 py-[4px] rounded-lg inline-block mb-4 ${badgeCls}`}>
           Q{questionIndex + 1}
-        </div>
-        <p className="text-lg md:text-xl font-semibold text-slate-800 leading-relaxed">
+        </span>
+        <p
+          className="font-bold leading-[1.5] text-ink mb-5"
+          style={{ fontSize: 'clamp(20px, 4vw, 28px)' }}
+        >
           {questionText}
         </p>
+        <div className="border-t-2 border-dashed border-ink" style={{ opacity: 0.2 }} />
       </div>
 
-      <div className="space-y-3">
+      {/* Choices */}
+      <div className="flex flex-col gap-3">
         {choices.map((choice) => {
           const isSelected = selected === choice.value;
           return (
@@ -55,32 +79,35 @@ export default function QuizCard({ questionText, questionIndex, onAnswer }: Quiz
               onClick={() => handleSelect(choice.value)}
               disabled={selected !== null}
               className={`
-                w-full flex items-center gap-4 px-5 py-4 rounded-xl border-2 text-left
-                transition-all duration-200 font-medium
-                ${
-                  isSelected
-                    ? 'border-teal-500 bg-teal-50 text-teal-700 scale-[1.02] shadow-md'
-                    : selected !== null
-                    ? 'border-slate-200 bg-slate-50 text-slate-400 cursor-not-allowed'
-                    : 'border-slate-200 bg-white text-slate-700 hover:border-teal-400 hover:bg-teal-50 hover:scale-[1.01] hover:shadow-sm cursor-pointer'
+                w-full flex items-center gap-3 px-4 py-[14px] rounded-[12px] border-2 text-left
+                transition-all duration-150
+                ${isSelected
+                  ? 'border-ink bg-ink text-paper'
+                  : selected !== null
+                  ? 'border-ink bg-paper cursor-not-allowed'
+                  : 'border-ink bg-paper text-ink hover:-translate-y-[2px] cursor-pointer'
                 }
               `}
+              style={
+                isSelected
+                  ? {}
+                  : selected !== null
+                  ? { opacity: 0.35 }
+                  : { boxShadow: '3px 3px 0 #0E0E0E' }
+              }
             >
+              {/* Score badge */}
               <span
-                className={`
-                  flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold
-                  ${
-                    isSelected
-                      ? 'bg-teal-500 text-white'
-                      : selected !== null
-                      ? 'bg-slate-200 text-slate-400'
-                      : 'bg-slate-100 text-slate-500 group-hover:bg-teal-100'
-                  }
-                `}
+                className="flex-shrink-0 w-[38px] h-[28px] flex items-center justify-center font-mono text-[12px] font-bold rounded-[6px] border-2"
+                style={
+                  isSelected
+                    ? { background: 'rgba(255,255,255,0.15)', color: '#FFF', borderColor: 'rgba(255,255,255,0.3)' }
+                    : { background: choice.bg, color: choice.color, borderColor: '#0E0E0E' }
+                }
               >
                 {choice.label}
               </span>
-              <span>{choice.text}</span>
+              <span className="text-[15px] font-medium">{choice.text}</span>
             </button>
           );
         })}

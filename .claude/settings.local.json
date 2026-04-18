@@ -9,7 +9,8 @@
       "Bash(pkill -f \"next dev\")",
       "Bash(kill 13524)",
       "Bash(taskkill //PID 22780 //F)",
-      "Bash(taskkill //PID 13524 //F)"
+      "Bash(taskkill //PID 13524 //F)",
+      "Bash(npx tsc:*)"
     ]
   }
 }

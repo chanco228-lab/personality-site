@@ -7,8 +7,8 @@ import { Question } from '@/data/types';
 import { calculateScores, determineType, calculateIntrovertScore } from '@/lib/scoring';
 import { supabase } from '@/lib/supabase';
 import { logEvent, deleteLogStep } from '@/lib/logger';
+import Link from 'next/link';
 import QuizCard from '@/components/QuizCard';
-import ProgressBar from '@/components/ProgressBar';
 
 const STORAGE_KEY = 'personality_quiz_state';
 const RESULTS_KEY = 'personality_quiz_results';
@@ -158,28 +158,31 @@ export default function QuizPage() {
 
   if (!state) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
-        <div className="text-white text-lg">読み込み中...</div>
+      <div className="min-h-screen bg-bg flex items-center justify-center">
+        <div className="font-mono text-[14px] text-ink" style={{ opacity: 0.5 }}>読み込み中...</div>
       </div>
     );
   }
 
   if (showNotice) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-4" style={{ background: 'linear-gradient(135deg, #0f4c81 0%, #2d9596 100%)' }}>
-        <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-xl">
-          <div className="text-3xl mb-4">💡</div>
-          <h2 className="text-lg font-bold text-slate-800 mb-3">より正確な診断のために</h2>
-          <p className="text-slate-600 text-sm leading-relaxed mb-6">
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6">
+        <div
+          className="w-full max-w-[480px] bg-yellow border-2 border-ink rounded-[24px] px-8 py-10 text-center"
+          style={{ boxShadow: '10px 10px 0 #0E0E0E' }}
+        >
+          <div className="text-[48px] mb-4">💡</div>
+          <h2 className="font-black text-[24px] tracking-tight mb-4">診断の前に</h2>
+          <p className="text-[16px] leading-[1.7] mb-8">
             「こうありたい自分」ではなく、<br />
-            「実際の自分の行動パターン」で<br />
+            <strong>「実際の自分の行動パターン」</strong>で<br />
             答えてください。
           </p>
           <button
             onClick={() => setShowNotice(false)}
-            className="w-full bg-gradient-to-r from-teal-600 to-blue-700 text-white font-bold px-6 py-3 rounded-full shadow-md hover:shadow-lg hover:scale-105 transition-all duration-300"
+            className="hero-cta w-full font-display font-black bg-ink text-paper border-2 border-ink rounded-full py-[18px] text-[18px]"
           >
-            診断を始める
+            診断を始める →
           </button>
         </div>
       </div>
@@ -189,13 +192,38 @@ export default function QuizPage() {
   const currentQuestion = state.questions[state.currentIndex];
   const total = state.questions.length;
   const current = state.currentIndex + 1;
+  const percentage = Math.round(((current - 1) / total) * 100);
 
   return (
-    <div className="min-h-screen flex flex-col" style={{ background: 'linear-gradient(180deg, #f0f9ff 0%, #e0f2fe 100%)' }}>
-      {/* Header */}
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-slate-200 shadow-sm">
-        <div className="max-w-2xl mx-auto px-4 py-4">
-          <ProgressBar current={current} total={total} />
+    <div className="min-h-screen bg-bg flex flex-col">
+
+      {/* Sticky header: mini logo + progress bar */}
+      <header className="sticky top-0 z-50 bg-paper border-b-2 border-ink">
+        <div className="max-w-[720px] mx-auto px-4 py-3 flex items-center gap-3">
+          {/* Mini T7 logo */}
+          <Link href="/" className="shrink-0">
+            <span
+              className="w-7 h-7 bg-yellow border-2 border-ink rounded-lg flex items-center justify-center font-mono text-[11px] font-bold"
+              style={{ transform: 'rotate(-5deg)' }}
+            >
+              T7
+            </span>
+          </Link>
+          {/* Q counter */}
+          <span className="font-mono text-[12px] font-bold shrink-0">
+            Q{current} / {total}
+          </span>
+          {/* Progress track */}
+          <div className="flex-1 border-2 border-ink h-[8px] bg-paper overflow-hidden">
+            <div
+              className="h-full bg-yellow transition-all duration-500 ease-out"
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          {/* Factor label */}
+          <span className="font-mono text-[12px] font-bold shrink-0 text-coral">
+            {currentQuestion.factor}
+          </span>
         </div>
       </header>
 
@@ -210,37 +238,34 @@ export default function QuizPage() {
             key={state.currentIndex}
             questionText={currentQuestion.text}
             questionIndex={state.currentIndex}
+            factor={currentQuestion.factor}
             onAnswer={handleAnswer}
           />
         </div>
       </main>
 
       {/* Footer controls */}
-      <footer className="sticky bottom-0 bg-white/80 backdrop-blur-md border-t border-slate-200 py-4 px-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+      <div className="px-4 pb-8">
+        <div className="max-w-[640px] mx-auto flex items-center justify-between">
           <button
             onClick={handleBack}
             disabled={state.currentIndex === 0}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`flex items-center gap-1 text-[13px] font-bold transition-all ${
               state.currentIndex === 0
-                ? 'text-slate-300 cursor-not-allowed'
-                : 'text-slate-600 hover:text-slate-800 hover:bg-slate-100'
+                ? 'text-ink/20 cursor-not-allowed'
+                : 'text-ink hover:text-coral'
             }`}
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-            </svg>
-            戻る
+            ← 戻る
           </button>
-
           <button
             onClick={handleRestart}
-            className="text-slate-400 hover:text-red-500 text-xs px-3 py-2 rounded-lg hover:bg-red-50 transition-all"
+            className="text-[12px] font-mono text-ink/40 hover:text-ink transition-colors"
           >
-            最初からやり直す
+            やり直す
           </button>
         </div>
-      </footer>
+      </div>
     </div>
   );
 }
