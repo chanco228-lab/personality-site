@@ -20,6 +20,7 @@ type Stats = {
   topTypes: { typeId: string; count: number }[];
   factorAvgScores: Record<string, number>;
   introvertAvg: number;
+  dailyStarts: { date: string; count: number }[];
 };
 
 // getShuffledQuestionsと同じ決定的順序でstep→questionのマッピングを構築
@@ -220,6 +221,17 @@ export default function AdminPage() {
                 decimal
               />
             </div>
+
+            {/* 診断頻度チャート */}
+            {stats.dailyStarts && (
+              <div className="bg-white rounded-xl border border-slate-200 p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-sm font-bold text-slate-700">診断頻度（新規開始）</p>
+                  <p className="text-xs text-slate-400">過去{days}日間</p>
+                </div>
+                <DailyChart data={stats.dailyStarts} />
+              </div>
+            )}
 
             {/* シェア＆追加指標 */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -489,6 +501,56 @@ export default function AdminPage() {
         )}
 
       </main>
+    </div>
+  );
+}
+
+function DailyChart({ data }: { data: { date: string; count: number }[] }) {
+  const maxCount = Math.max(...data.map((d) => d.count), 1);
+  const total = data.reduce((s, d) => s + d.count, 0);
+  const avg = data.length > 0 ? (total / data.length).toFixed(1) : '0';
+
+  return (
+    <div>
+      <div className="flex items-end gap-[3px] h-24">
+        {data.map(({ date, count }) => {
+          const heightPct = (count / maxCount) * 100;
+          const mmdd = date.slice(5).replace('-', '/');
+          const isToday = date === new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+          return (
+            <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
+              {/* Tooltip */}
+              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                {mmdd}: {count}件
+              </div>
+              {/* Bar */}
+              <div className="w-full flex flex-col justify-end" style={{ height: 80 }}>
+                <div
+                  className={`w-full rounded-sm transition-all duration-300 ${isToday ? 'bg-teal-500' : 'bg-teal-200'}`}
+                  style={{ height: `${Math.max(heightPct, count > 0 ? 4 : 0)}%` }}
+                />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {/* X軸ラベル: 7日間は全部、30日間は週1のみ表示 */}
+      <div className="flex gap-[3px] mt-1">
+        {data.map(({ date }, i) => {
+          const mmdd = date.slice(5).replace('-', '/');
+          const show = data.length <= 7 || i % 7 === 0 || i === data.length - 1;
+          return (
+            <div key={date} className="flex-1 text-center">
+              <span className="text-[9px] text-slate-400">{show ? mmdd : ''}</span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="flex gap-4 mt-3 text-xs text-slate-500">
+        <span>合計 <strong className="text-slate-700">{total}件</strong></span>
+        <span>平均 <strong className="text-slate-700">{avg}件/日</strong></span>
+        <span>最大 <strong className="text-slate-700">{maxCount}件</strong></span>
+      </div>
     </div>
   );
 }

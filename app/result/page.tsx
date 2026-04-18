@@ -98,6 +98,9 @@ export default function ResultPage() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as QuizResults;
+        // 因子スコアが欠落している場合は0で補完
+        const defaultScores = { NS: 0, HA: 0, RD: 0, P: 0, SD: 0, CO: 0, ST: 0 };
+        parsed.scores = { ...defaultScores, ...parsed.scores };
         setResults(parsed);
       } catch {
         setNotFound(true);

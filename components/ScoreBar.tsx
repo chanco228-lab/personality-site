@@ -38,7 +38,8 @@ export default function ScoreBar({ factor, score, delay = 0 }: ScoreBarProps) {
   }, [delay]);
 
   const badgeCls = FACTOR_BADGE[factor];
-  const fillColor = score >= 0 ? FACTOR_COLOR[factor] : '#D9D9D9';
+  // 正負どちらも因子カラーを使用
+  const fillColor = FACTOR_COLOR[factor];
 
   // score: -9 to +9. 0 is at 50%.
   const dotPct = mounted ? ((score + 9) / 18) * 100 : 50;

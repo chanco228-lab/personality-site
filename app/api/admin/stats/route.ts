@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
 
   const { data: logs, error } = await supabaseAdmin
     .from('logs')
-    .select('event_name, step, value')
+    .select('event_name, step, value, created_at')
     .gte('created_at', since);
 
   if (error || !logs) {
@@ -101,10 +101,29 @@ export async function GET(req: NextRequest) {
     ? Math.round(introvertVals.reduce((s, v) => s + v, 0) / introvertVals.length)
     : 0;
 
+  // 日別診断開始数（JST: UTC+9）
+  const JST = 9 * 60 * 60 * 1000;
+  const dailyMap: Record<string, number> = {};
+  for (let i = 0; i < days; i++) {
+    const d = new Date(Date.now() - (days - 1 - i) * 24 * 60 * 60 * 1000 + JST);
+    dailyMap[d.toISOString().slice(0, 10)] = 0;
+  }
+  logs
+    .filter((l) => l.event_name === 'quiz_start')
+    .forEach((l) => {
+      const key = new Date(new Date(l.created_at as string).getTime() + JST)
+        .toISOString().slice(0, 10);
+      if (key in dailyMap) dailyMap[key]++;
+    });
+  const dailyStarts = Object.entries(dailyMap)
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([date, count]) => ({ date, count }));
+
   return NextResponse.json({
     starts, completes, emails, emailFormViewed, xShared, lineShared,
     step1Count, stepCounts, stepAvgScores,
     feedbackCount, feedbackAvg, feedbackDist,
     topTypes, factorAvgScores, introvertAvg,
+    dailyStarts,
   });
 }
