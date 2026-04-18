@@ -19,6 +19,7 @@ import { FACTOR_LABELS } from '@/data/types';
 const STORAGE_KEY = 'personality_quiz_state_v3';
 const RESULTS_KEY = 'personality_quiz_results';
 const RESULT_ID_KEY = 'personality_quiz_result_id';
+const VERSION_KEY = 'personality_quiz_version';
 const QUIZ_VERSION = 6;
 
 type QuizState = {
@@ -90,6 +91,7 @@ export default function QuizV3() {
       const scores = calculateScoresV3(newAnswers, questionFactors, questionReversed);
       const typeId = determineTypeV3(scores);
       localStorage.setItem(RESULTS_KEY, JSON.stringify({ scores, typeId }));
+      localStorage.setItem(VERSION_KEY, 'v3');
       localStorage.removeItem(STORAGE_KEY);
       localStorage.removeItem(RESULT_ID_KEY);
 

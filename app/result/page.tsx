@@ -17,6 +17,7 @@ import { getTop3Compatible, getBottom3Compatible } from '@/lib/compatibility';
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 const RESULTS_KEY = 'personality_quiz_results';
 const STORAGE_KEY = 'personality_quiz_state';
+const VERSION_KEY = 'personality_quiz_version';
 
 const FACTOR_ORDER: FactorType[] = ['NS', 'HA', 'RD', 'P', 'SD', 'CO', 'ST'];
 
@@ -125,16 +126,25 @@ export default function ResultPage() {
     if (!results || feedbackSent) return;
     setFeedbackScore(score);
     setFeedbackSent(true);
-    const introvertScore = calculateIntrovertScore({
-      ns: results.scores.NS, ha: results.scores.HA, rd: results.scores.RD,
-      sd: results.scores.SD, co: results.scores.CO, st: results.scores.ST,
-    });
-    supabase.from('feedback_v2').insert({
-      result_id: resultId,
-      type_id: results.typeId,
-      introvert_score: introvertScore,
-      score,
-    }).then();
+    const quizVersion = localStorage.getItem(VERSION_KEY) ?? 'v2';
+    if (quizVersion === 'v3') {
+      supabase.from('feedback_v3').insert({
+        result_id: resultId,
+        type_id: results.typeId,
+        rating: score,
+      }).then();
+    } else {
+      const introvertScore = calculateIntrovertScore({
+        ns: results.scores.NS, ha: results.scores.HA, rd: results.scores.RD,
+        sd: results.scores.SD, co: results.scores.CO, st: results.scores.ST,
+      });
+      supabase.from('feedback_v2').insert({
+        result_id: resultId,
+        type_id: results.typeId,
+        introvert_score: introvertScore,
+        score,
+      }).then();
+    }
   };
 
   const handleEmailSignup = async () => {
@@ -537,6 +547,7 @@ export default function ResultPage() {
                   href={personality.noteUrl!}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => logEvent('note_clicked')}
                   className="hero-cta inline-flex items-center gap-2 font-display font-black text-paper border-2 border-ink rounded-full px-10 py-5 text-[18px]"
                   style={{ background: '#41C9B4', borderColor: '#41C9B4' }}
                 >

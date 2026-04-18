@@ -21,6 +21,10 @@ type Stats = {
   factorAvgScores: Record<string, number>;
   introvertAvg: number;
   dailyStarts: { date: string; count: number }[];
+  // v3-only
+  neutralRate?: number;
+  noteClicked?: number;
+  impulsivityAvg?: number;
 };
 
 // getShuffledQuestionsと同じ決定的順序でstep→questionのマッピングを構築
@@ -45,13 +49,14 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState(false);
   const [days, setDays] = useState<7 | 30>(7);
+  const [version, setVersion] = useState<'v2' | 'v3'>('v3');
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const fetchStats = async (pw: string, d: number): Promise<boolean> => {
+  const fetchStats = async (pw: string, d: number, ver: string): Promise<boolean> => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/stats?days=${d}`, {
+      const res = await fetch(`/api/admin/stats?days=${d}&version=${ver}`, {
         headers: { Authorization: `Bearer ${pw}` },
       });
       if (!res.ok) return false;
@@ -65,18 +70,20 @@ export default function AdminPage() {
   useEffect(() => {
     const saved = sessionStorage.getItem(PASS_KEY);
     if (!saved) return;
-    fetchStats(saved, 7).then((ok) => { if (ok) setAuthed(true); });
+    fetchStats(saved, 7, version).then((ok) => { if (ok) setAuthed(true); });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!authed) return;
     const saved = sessionStorage.getItem(PASS_KEY);
-    if (saved) fetchStats(saved, days);
-  }, [days, authed]);
+    if (saved) fetchStats(saved, days, version);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [days, version, authed]);
 
   const handleLogin = async () => {
     setAuthError(false);
-    const ok = await fetchStats(password, days);
+    const ok = await fetchStats(password, days, version);
     if (ok) {
       sessionStorage.setItem(PASS_KEY, password);
       setAuthed(true);
@@ -131,6 +138,10 @@ export default function AdminPage() {
     stats && stats.emailFormViewed > 0 ? Math.round((stats.emails / stats.emailFormViewed) * 100) : 0;
   const emailConvRate =
     stats && stats.completes > 0 ? Math.round((stats.emails / stats.completes) * 100) : 0;
+  const noteConvRate =
+    stats && version === 'v3' && stats.completes > 0 && stats.noteClicked != null
+      ? Math.round((stats.noteClicked / stats.completes) * 100)
+      : 0;
 
   const stepEntries = Array.from({ length: 21 }, (_, i) => ({
     step: i + 1,
@@ -144,12 +155,30 @@ export default function AdminPage() {
     <div className="min-h-screen bg-slate-50">
       {/* ヘッダー */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-slate-800">管理画面</h1>
+        <div className="flex items-center gap-4">
+          <h1 className="text-lg font-bold text-slate-800">管理画面</h1>
+          {/* v2/v3 タブ */}
+          <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+            {(['v3', 'v2'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => { setVersion(v); setStats(null); }}
+                className={`px-4 py-1 rounded-md text-sm font-bold transition-colors ${
+                  version === v
+                    ? 'bg-white text-slate-800 shadow-sm'
+                    : 'text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                {v.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
               const saved = sessionStorage.getItem(PASS_KEY);
-              if (saved) fetchStats(saved, days);
+              if (saved) fetchStats(saved, days, version);
             }}
             disabled={loading}
             className="flex items-center gap-1.5 text-sm font-medium text-slate-600 hover:text-teal-600 disabled:opacity-40 transition-colors"
@@ -205,13 +234,23 @@ export default function AdminPage() {
                 sub={`完了率 ${completionRate}%`}
                 color={completionRate >= 70 ? 'teal' : completionRate >= 50 ? 'amber' : 'red'}
               />
-              <EmailConvCard
-                emails={stats.emails}
-                emailFormViewed={stats.emailFormViewed}
-                completes={stats.completes}
-                formConvRate={formConvRate}
-                emailConvRate={emailConvRate}
-              />
+              {version === 'v3' ? (
+                <NoteConvCard
+                  noteClicked={stats.noteClicked ?? 0}
+                  emails={stats.emails}
+                  completes={stats.completes}
+                  noteConvRate={noteConvRate}
+                  emailConvRate={emailConvRate}
+                />
+              ) : (
+                <EmailConvCard
+                  emails={stats.emails}
+                  emailFormViewed={stats.emailFormViewed}
+                  completes={stats.completes}
+                  formConvRate={formConvRate}
+                  emailConvRate={emailConvRate}
+                />
+              )}
               <KpiCard
                 label="満足度スコア"
                 value={stats.feedbackAvg}
@@ -254,13 +293,41 @@ export default function AdminPage() {
                 sub={`${stats.step1Count}人 / ${stats.starts}人`}
                 color={q1PassRate >= 80 ? 'teal' : q1PassRate >= 60 ? 'amber' : 'red'}
               />
-              <KpiCard
-                label="陰キャ度平均"
-                value={stats.introvertAvg}
-                unit="/ 100"
-                sub={`${stats.topTypes.reduce((s, t) => s + t.count, 0)}人の平均`}
-              />
+              {version === 'v3' ? (
+                <KpiCard
+                  label="中立選択率"
+                  value={stats.neutralRate ?? 0}
+                  unit="%"
+                  sub="0を選んだ割合"
+                  decimal
+                />
+              ) : (
+                <KpiCard
+                  label="陰キャ度平均"
+                  value={stats.introvertAvg}
+                  unit="/ 100"
+                  sub={`${stats.topTypes.reduce((s, t) => s + t.count, 0)}人の平均`}
+                />
+              )}
             </div>
+
+            {/* v3専用: 陽キャ度・衝動性 */}
+            {version === 'v3' && (
+              <div className="grid grid-cols-2 gap-4">
+                <KpiCard
+                  label="陽キャ度平均"
+                  value={stats.introvertAvg}
+                  unit="/ 100"
+                  sub={`${totalTypeCount}人の平均`}
+                />
+                <KpiCard
+                  label="衝動性平均"
+                  value={stats.impulsivityAvg ?? 0}
+                  unit="/ 100"
+                  sub={`${totalTypeCount}人の平均`}
+                />
+              </div>
+            )}
           </>
         )}
 
@@ -390,6 +457,7 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
         {/* スコア分析 */}
         {stats && (
           <div className="bg-white rounded-2xl shadow-sm p-6 space-y-8">
@@ -519,11 +587,9 @@ function DailyChart({ data }: { data: { date: string; count: number }[] }) {
           const isToday = date === new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
           return (
             <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
-              {/* Tooltip */}
               <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-xs rounded px-1.5 py-0.5 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
                 {mmdd}: {count}件
               </div>
-              {/* Bar */}
               <div className="w-full flex flex-col justify-end" style={{ height: 80 }}>
                 <div
                   className={`w-full rounded-sm transition-all duration-300 ${isToday ? 'bg-teal-500' : 'bg-teal-200'}`}
@@ -534,7 +600,6 @@ function DailyChart({ data }: { data: { date: string; count: number }[] }) {
           );
         })}
       </div>
-      {/* X軸ラベル: 7日間は全部、30日間は週1のみ表示 */}
       <div className="flex gap-[3px] mt-1">
         {data.map(({ date }, i) => {
           const mmdd = date.slice(5).replace('-', '/');
@@ -551,6 +616,44 @@ function DailyChart({ data }: { data: { date: string; count: number }[] }) {
         <span>平均 <strong className="text-slate-700">{avg}件/日</strong></span>
         <span>最大 <strong className="text-slate-700">{maxCount}件</strong></span>
       </div>
+    </div>
+  );
+}
+
+function NoteConvCard({
+  noteClicked,
+  emails,
+  completes,
+  noteConvRate,
+  emailConvRate,
+}: {
+  noteClicked: number;
+  emails: number;
+  completes: number;
+  noteConvRate: number;
+  emailConvRate: number;
+}) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-5">
+      <p className="text-sm font-medium text-slate-600 mb-2">note/メール転換率</p>
+      <div className="flex items-end gap-3 mb-1.5">
+        <div>
+          <p className="text-2xl font-extrabold text-teal-600">
+            {noteConvRate}<span className="text-sm font-semibold ml-0.5">%</span>
+          </p>
+          <p className="text-[10px] text-slate-400">note</p>
+        </div>
+        <div className="text-slate-300 text-lg font-light pb-4">/</div>
+        <div>
+          <p className="text-2xl font-extrabold text-slate-700">
+            {emailConvRate}<span className="text-sm font-semibold ml-0.5">%</span>
+          </p>
+          <p className="text-[10px] text-slate-400">メール</p>
+        </div>
+      </div>
+      <p className="text-sm text-slate-600">
+        note {noteClicked}人 / mail {emails}人 / 完 {completes}人
+      </p>
     </div>
   );
 }
