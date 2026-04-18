@@ -22,18 +22,19 @@ export default function Hero() {
           {/* H1 — A-3: フォントサイズ下限を36pxに、行間1.1に */}
           <h1
             className="font-black tracking-[-0.03em] mb-6"
-            style={{ fontSize: 'clamp(36px, 8vw, 88px)', lineHeight: 1.1 }}
+            style={{ fontSize: 'clamp(36px, 6vw, 72px)', lineHeight: 1.1 }}
           >
-            21問で分かる、<br />
-            {/* A-3: mb-1 で黄色ブロックの行間を確保 */}
-            <span
-              className="inline-block bg-yellow border-2 border-ink rounded-lg px-2 mb-1"
-              style={{ transform: 'rotate(-2deg)', boxShadow: '4px 4px 0 #0E0E0E' }}
-            >
-              本当の
+            <span className="block">21問で分かる、</span>
+            <span className="block">
+              <span
+                className="inline-block bg-yellow border-2 border-ink rounded-lg px-2 mb-1"
+                style={{ transform: 'rotate(-2deg)', boxShadow: '4px 4px 0 #0E0E0E' }}
+              >
+                本当の
+              </span>
+              あなたの
             </span>
-            あなたの<br />
-            <span className="text-coral">54タイプ</span>。
+            <span className="block"><span className="text-coral">54タイプ</span>。</span>
           </h1>
 
           {/* Sub */}

@@ -13,6 +13,8 @@ import { supabase } from '@/lib/supabase';
 import { logEvent } from '@/lib/logger';
 import { factorComments } from '@/data/factorComments';
 import { getTop3Compatible, getBottom3Compatible } from '@/lib/compatibility';
+import { generateShareText, ShareVariant } from '@/lib/shareText';
+import StickyShareBar from '@/components/StickyShareBar';
 
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 const RESULTS_KEY = 'personality_quiz_results';
@@ -74,6 +76,7 @@ const SECTION_LABEL = 'inline-flex items-center gap-[10px] font-mono text-[13px]
 export default function ResultPage() {
   const [results, setResults] = useState<QuizResults | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
+  const [variant] = useState<ShareVariant>(() => Math.random() < 0.5 ? 'A' : 'B');
   const [feedbackSent, setFeedbackSent] = useState(false);
   const [feedbackScore, setFeedbackScore] = useState<number | null>(null);
   const [emailInput, setEmailInput] = useState('');
@@ -214,40 +217,43 @@ export default function ResultPage() {
   const top3 = getTop3Compatible(personality.id);
   const bottom3 = getBottom3Compatible(personality.id);
 
-  const xShareText = `TC7診断したら【${personality.name}】だった\n${introvertLabel}\nみんなも診断してみて、タイプ教えて👇\n#TC7診断\npersonality-site.vercel.app`;
-  const lineShareText = `TC7診断したら${introvertLabel}、【${personality.name}】って出た\nhttps://personality-site.vercel.app`;
+  const extLabel = introvertScore < 40 ? '陽キャ' : introvertScore > 60 ? '陰キャ' : '無キャ';
+  const extPercent = introvertScore < 50 ? 100 - introvertScore : introvertScore;
+
+  const xShareText = generateShareText({ typeName: personality.name, extLabel, extPercent, catchphrase: personality.catchphrase, variant, platform: 'x' });
+  const lineShareText = generateShareText({ typeName: personality.name, extLabel, extPercent, catchphrase: personality.catchphrase, variant, platform: 'line' });
+  const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xShareText)}`;
+  const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(lineShareText)}`;
 
   const hasNote = !!personality.noteUrl;
 
-  // ── Share buttons (reused in hero and footer) ────────────────────────────
+  // ── Share buttons ─────────────────────────────────────────────────────────
 
-  const ShareButtons = ({ size = 'normal' }: { size?: 'normal' | 'large' }) => (
+  const ShareButtons = ({ wiggle = false }: { wiggle?: boolean }) => (
     <div className="flex gap-3 flex-wrap">
       <a
-        href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(xShareText)}`}
+        href={xUrl}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => logEvent('x_shared')}
-        className={`inline-flex items-center gap-2 bg-ink text-paper border-2 border-ink font-bold rounded-full ${size === 'large' ? 'text-[15px] px-6 py-3' : 'text-[13px] px-5 py-[10px]'}`}
-        style={{ boxShadow: '4px 4px 0 rgba(0,0,0,0.3)' }}
+        className={`share-btn share-btn-x text-[13px] px-5 py-[10px]${wiggle ? ' share-btn-wiggle' : ''}`}
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="currentColor">
           <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-4.714-6.231-5.401 6.231H2.746l7.73-8.835L1.254 2.25H8.08l4.253 5.622 5.911-5.622zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
         </svg>
-        Xでシェア
+        結果をXでシェア
       </a>
       <a
-        href={`https://line.me/R/msg/text/?${encodeURIComponent(lineShareText)}`}
+        href={lineUrl}
         target="_blank"
         rel="noopener noreferrer"
         onClick={() => logEvent('line_shared')}
-        className={`inline-flex items-center gap-2 text-paper border-2 font-bold rounded-full ${size === 'large' ? 'text-[15px] px-6 py-3' : 'text-[13px] px-5 py-[10px]'}`}
-        style={{ background: '#06C755', borderColor: '#06C755', boxShadow: '4px 4px 0 rgba(0,0,0,0.3)' }}
+        className="share-btn share-btn-line text-[13px] px-5 py-[10px]"
       >
-        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+        <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 2C6.477 2 2 6.045 2 11.077c0 4.562 3.253 8.376 7.656 9.083.334.07.79.217.905.497.104.256.068.657.033.916l-.147.864c-.044.262-.206 1.023.896.558 1.101-.466 5.942-3.5 8.107-5.992C20.917 15.149 22 13.209 22 11.077 22 6.045 17.523 2 12 2z" />
         </svg>
-        LINEでシェア
+        友達にLINEで送る
       </a>
     </div>
   );
@@ -258,8 +264,8 @@ export default function ResultPage() {
     <div className="min-h-screen bg-bg flex flex-col">
 
       {/* ① ヒーロー */}
-      <div style={{ background: typeColors.bg, color: typeColors.text }}>
-        <div className="max-w-[720px] mx-auto px-6 pt-[56px] pb-[52px]">
+      <div id="result-hero" style={{ background: typeColors.bg, color: typeColors.text }}>
+        <div className="max-w-[720px] mx-auto px-6 pt-[56px] pb-[28px]">
           <p className="font-mono text-[13px] font-bold mb-4" style={{ opacity: 0.65 }}>
             {personality.id.toUpperCase()} · TYPE {typeNum}
           </p>
@@ -275,7 +281,7 @@ export default function ResultPage() {
           >
             {personality.heroLine}
           </p>
-          <div className="flex flex-wrap gap-3 mb-8">
+          <div className="flex flex-wrap gap-3 mb-4">
             <span
               className="font-mono font-bold text-[13px] px-4 py-[8px] rounded-full border-2"
               style={{ borderColor: typeColors.text }}
@@ -289,7 +295,7 @@ export default function ResultPage() {
               衝動性 {impulsivityScore}%
             </span>
           </div>
-          <ShareButtons />
+          <ShareButtons wiggle />
         </div>
       </div>
 
@@ -636,10 +642,11 @@ export default function ResultPage() {
         </section>
 
         {/* ⑪ シェアボタン（下部） */}
-        <section className={CARD} style={CARD_SHADOW}>
-          <p className="font-black text-[18px] tracking-tight mb-5 text-center">この結果、友達にも見せてみる？</p>
-          <div className="flex justify-center">
-            <ShareButtons size="large" />
+        <section id="result-share-bottom" className="rounded-[20px] border-2 border-ink p-6 md:p-8 bg-yellow" style={{ boxShadow: '8px 8px 0 #0E0E0E' }}>
+          <p className="font-black text-[22px] tracking-tight mb-2 text-center">この結果、友達にも教えない？</p>
+          <p className="text-[14px] text-center mb-6" style={{ opacity: 0.6 }}>3人中2人が、シェアして友達と楽しんでいます</p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <ShareButtons />
           </div>
         </section>
 
@@ -655,6 +662,8 @@ export default function ResultPage() {
           </Link>
         </div>
       </main>
+
+      <StickyShareBar xUrl={xUrl} lineUrl={lineUrl} />
 
       {/* Footer */}
       <footer className="border-t-2 border-ink py-5 px-4 text-center bg-bg">
