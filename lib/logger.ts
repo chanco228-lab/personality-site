@@ -2,7 +2,7 @@ import { supabase } from './supabase';
 
 const SESSION_KEY = 'personality_session_id';
 
-function getSessionId(): string {
+export function getSessionId(): string {
   let id = sessionStorage.getItem(SESSION_KEY);
   if (!id) {
     id = crypto.randomUUID();

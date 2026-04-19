@@ -15,6 +15,7 @@ import { factorComments } from '@/data/factorComments';
 import { getTop3Compatible, getBottom3Compatible } from '@/lib/compatibility';
 import { generateShareText, ShareVariant } from '@/lib/shareText';
 import StickyShareBar from '@/components/StickyShareBar';
+import SectionRating from '@/components/SectionRating';
 
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 const RESULTS_KEY = 'personality_quiz_results';
@@ -304,12 +305,16 @@ export default function ResultPage() {
 
         {/* ② 図星リスト */}
         <section className={CARD} style={CARD_SHADOW}>
-          <div className={SECTION_LABEL}>
-            <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
-            INSIGHTS
+          <div className="flex items-start justify-between gap-3 mb-2">
+            <div>
+              <div className={SECTION_LABEL}>
+                <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
+                INSIGHTS
+              </div>
+              <h2 className="font-black text-[20px] tracking-tight mb-3">あなたの特徴</h2>
+            </div>
+            <SectionRating typeId={personality.id} section="insights" resultId={resultId} />
           </div>
-          <h2 className="font-black text-[20px] tracking-tight mb-2">この診断は、</h2>
-          <p className="font-black text-[20px] tracking-tight mb-6">あなたのこういうところを見つけた</p>
           <div className="flex flex-col gap-4">
             {personality.insights.map((item, i) => (
               <div key={i} className="flex items-start gap-3">
@@ -322,11 +327,16 @@ export default function ResultPage() {
 
         {/* ③ あなたについて */}
         <section className={CARD} style={CARD_SHADOW}>
-          <div className={SECTION_LABEL}>
-            <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
-            ABOUT YOU
+          <div className="flex items-start justify-between gap-3 mb-6">
+            <div>
+              <div className={SECTION_LABEL}>
+                <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
+                ABOUT YOU
+              </div>
+              <h2 className="font-black text-[22px] tracking-tight">あなたについて</h2>
+            </div>
+            <SectionRating typeId={personality.id} section="about" resultId={resultId} />
           </div>
-          <h2 className="font-black text-[22px] tracking-tight mb-6">あなたについて</h2>
           {aboutEntry ? (
             aboutEntry.strengths ? (
               <div className="flex flex-col gap-7">
@@ -420,11 +430,16 @@ export default function ResultPage() {
 
         {/* ⑥ 損ポイント */}
         <section className="bg-yellow border-2 border-ink rounded-[20px] p-6 md:p-8" style={CARD_SHADOW}>
-          <div className={SECTION_LABEL}>
-            <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
-            WHAT YOU MAY LOSE
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div>
+              <div className={SECTION_LABEL}>
+                <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
+                WHAT YOU MAY LOSE
+              </div>
+              <h2 className="font-black text-[22px] tracking-tight">あなたが繰り返してきたパターン</h2>
+            </div>
+            <SectionRating typeId={personality.id} section="loss" resultId={resultId} />
           </div>
-          <h2 className="font-black text-[22px] tracking-tight mb-5">あなたが繰り返してきたパターン</h2>
           <div className="flex gap-4 mb-6">
             <span className="text-[32px] shrink-0">⚠️</span>
             <p className="text-[16px] leading-[1.8]">{personality.loss}</p>
@@ -439,11 +454,16 @@ export default function ResultPage() {
 
         {/* ⑦ 人間関係 */}
         <section className={CARD} style={CARD_SHADOW}>
-          <div className={SECTION_LABEL}>
-            <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
-            RELATIONSHIPS
+          <div className="flex items-start justify-between gap-3 mb-5">
+            <div>
+              <div className={SECTION_LABEL}>
+                <span aria-hidden="true" className="inline-block w-5 h-[2px] bg-ink" />
+                RELATIONSHIPS
+              </div>
+              <h2 className="font-black text-[22px] tracking-tight">人間関係の傾向</h2>
+            </div>
+            <SectionRating typeId={personality.id} section="relationships" resultId={resultId} />
           </div>
-          <h2 className="font-black text-[22px] tracking-tight mb-5">人間関係の傾向</h2>
           {relationshipEntry ? (
             <div className="flex flex-col gap-4 mb-6">
               <div className="bg-bg border-2 border-ink rounded-[12px] p-4">

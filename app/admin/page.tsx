@@ -42,6 +42,15 @@ const STEP_QUESTIONS = (() => {
   return result; // index 0 = step 1
 })();
 
+type QualityRow = { type_id: string; section: string; up: number; down: number; total: number; upRate: number | null };
+type QualityData = {
+  rows: QualityRow[];
+  sectionScores: { section: string; up: number; down: number; total: number; upRate: number | null }[];
+  lowRanking: QualityRow[];
+};
+
+const SECTION_LABELS: Record<string, string> = { insights: '図星リスト', about: 'あなたについて', loss: '損ポイント' };
+
 const PASS_KEY = 'admin_password';
 
 export default function AdminPage() {
@@ -49,9 +58,20 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState(false);
   const [days, setDays] = useState<7 | 30>(7);
-  const [version, setVersion] = useState<'v2' | 'v3'>('v3');
+  const version = 'v3';
+  const [tab, setTab] = useState<'stats' | 'quality'>('stats');
   const [stats, setStats] = useState<Stats | null>(null);
+  const [qualityData, setQualityData] = useState<QualityData | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const fetchQuality = async (pw: string) => {
+    try {
+      const res = await fetch('/api/admin/section-ratings', {
+        headers: { Authorization: `Bearer ${pw}` },
+      });
+      if (res.ok) setQualityData(await res.json());
+    } catch { /* ignore */ }
+  };
 
   const fetchStats = async (pw: string, d: number, ver: string): Promise<boolean> => {
     setLoading(true);
@@ -77,9 +97,11 @@ export default function AdminPage() {
   useEffect(() => {
     if (!authed) return;
     const saved = sessionStorage.getItem(PASS_KEY);
-    if (saved) fetchStats(saved, days, version);
+    if (!saved) return;
+    if (tab === 'quality') fetchQuality(saved);
+    else fetchStats(saved, days, version);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, version, authed]);
+  }, [days, version, authed, tab]);
 
   const handleLogin = async () => {
     setAuthError(false);
@@ -157,19 +179,17 @@ export default function AdminPage() {
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold text-slate-800">管理画面</h1>
-          {/* v2/v3 タブ */}
+          {/* タブ */}
           <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-            {(['v3', 'v2'] as const).map((v) => (
+            {(['stats', 'quality'] as const).map((t) => (
               <button
-                key={v}
-                onClick={() => { setVersion(v); setStats(null); }}
+                key={t}
+                onClick={() => setTab(t)}
                 className={`px-4 py-1 rounded-md text-sm font-bold transition-colors ${
-                  version === v
-                    ? 'bg-white text-slate-800 shadow-sm'
-                    : 'text-slate-500 hover:text-slate-700'
+                  tab === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {v.toUpperCase()}
+                {t === 'stats' ? '統計' : '品質'}
               </button>
             ))}
           </div>
@@ -220,6 +240,75 @@ export default function AdminPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
+
+        {/* 品質タブ */}
+        {tab === 'quality' && (
+          <>
+            {!qualityData ? (
+              <p className="text-slate-500 text-sm">読み込み中...</p>
+            ) : (
+              <>
+                {/* セクション全体スコア */}
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h2 className="text-base font-bold text-slate-800 mb-4">セクション全体スコア</h2>
+                  <div className="grid grid-cols-3 gap-4">
+                    {qualityData.sectionScores.map((s) => {
+                      const color = s.upRate == null ? 'slate' : s.upRate >= 80 ? 'teal' : s.upRate >= 60 ? 'amber' : 'red';
+                      const colorMap = { teal: 'text-teal-600', amber: 'text-amber-600', red: 'text-red-600', slate: 'text-slate-400' };
+                      return (
+                        <div key={s.section} className="bg-slate-50 rounded-xl p-4 text-center">
+                          <p className="text-sm font-bold text-slate-600 mb-1">{SECTION_LABELS[s.section]}</p>
+                          <p className={`text-3xl font-extrabold ${colorMap[color]}`}>
+                            {s.upRate != null ? `${s.upRate}%` : '—'}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">👍{s.up} / 👎{s.down}（計{s.total}）</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* 低評価ランキング */}
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h2 className="text-base font-bold text-slate-800 mb-4">👎 低評価ランキング TOP20</h2>
+                  {qualityData.lowRanking.length === 0 ? (
+                    <p className="text-slate-400 text-sm">データなし</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-xs font-bold text-slate-500 border-b border-slate-200">
+                            <th className="pb-2 pr-4">タイプ</th>
+                            <th className="pb-2 pr-4">セクション</th>
+                            <th className="pb-2 pr-4 text-right">👍率</th>
+                            <th className="pb-2 pr-4 text-right">👍</th>
+                            <th className="pb-2 text-right">👎</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {qualityData.lowRanking.map((r, i) => {
+                            const color = r.upRate == null ? '' : r.upRate >= 80 ? 'text-teal-600' : r.upRate >= 60 ? 'text-amber-600' : 'text-red-600';
+                            return (
+                              <tr key={i} className="hover:bg-slate-50">
+                                <td className="py-2 pr-4 font-mono text-xs font-bold">{r.type_id}</td>
+                                <td className="py-2 pr-4">{SECTION_LABELS[r.section] ?? r.section}</td>
+                                <td className={`py-2 pr-4 text-right font-bold ${color}`}>{r.upRate != null ? `${r.upRate}%` : '—'}</td>
+                                <td className="py-2 pr-4 text-right text-slate-600">{r.up}</td>
+                                <td className="py-2 text-right text-slate-600">{r.down}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
+          </>
+        )}
+
+        {tab === 'stats' && (<>
 
         {/* KPIカード */}
         {stats && (
@@ -567,6 +656,8 @@ export default function AdminPage() {
             </div>
           </div>
         )}
+
+        </>)} {/* end tab === 'stats' */}
 
       </main>
     </div>

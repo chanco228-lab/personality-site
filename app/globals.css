@@ -83,6 +83,13 @@ body {
 .share-btn-x    { background: #0E0E0E; color: #FFF; box-shadow: 6px 6px 0 #0E0E0E; }
 .share-btn-line { background: #06C755; color: #FFF; box-shadow: 6px 6px 0 #0E0E0E; }
 
+@keyframes thanksFade {
+  0%   { opacity: 0; transform: translateY(4px); }
+  30%  { opacity: 0.7; transform: translateY(0); }
+  70%  { opacity: 0.7; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+
 .hero-cta {
   box-shadow: 6px 6px 0 #0E0E0E;
   transition: all 0.15s ease;
