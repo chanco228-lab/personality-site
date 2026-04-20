@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { personalityTypes, FACTOR_LABELS, FactorType } from '@/data/types';
 import rawQuestions from '@/data/questions';
+import { toDisplayCode } from '@/lib/typeCode';
 
 type Stats = {
   starts: number;
@@ -290,7 +291,7 @@ export default function AdminPage() {
                             const color = r.upRate == null ? '' : r.upRate >= 80 ? 'text-teal-600' : r.upRate >= 60 ? 'text-amber-600' : 'text-red-600';
                             return (
                               <tr key={i} className="hover:bg-slate-50">
-                                <td className="py-2 pr-4 font-mono text-xs font-bold">{r.type_id}</td>
+                                <td className="py-2 pr-4 font-mono text-xs font-bold">{toDisplayCode(r.type_id)}</td>
                                 <td className="py-2 pr-4">{SECTION_LABELS[r.section] ?? r.section}</td>
                                 <td className={`py-2 pr-4 text-right font-bold ${color}`}>{r.upRate != null ? `${r.upRate}%` : '—'}</td>
                                 <td className="py-2 pr-4 text-right text-slate-600">{r.up}</td>
@@ -439,7 +440,7 @@ export default function AdminPage() {
                         <span className="text-sm font-bold text-slate-800">
                           {pt ? pt.name : typeId}
                         </span>
-                        <span className="text-xs text-slate-500">{typeId}</span>
+                        <span className="text-xs text-slate-500">{toDisplayCode(typeId)}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 bg-slate-200 rounded-full h-2.5 overflow-hidden">

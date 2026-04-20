@@ -16,6 +16,8 @@ import { getTop3Compatible, getBottom3Compatible } from '@/lib/compatibility';
 import { generateShareText, ShareVariant } from '@/lib/shareText';
 import StickyShareBar from '@/components/StickyShareBar';
 import SectionRating from '@/components/SectionRating';
+import CodeAccordion from '@/components/CodeAccordion';
+import { toDisplayCode } from '@/lib/typeCode';
 
 const RESULT_ID_KEY = 'personality_quiz_result_id';
 const RESULTS_KEY = 'personality_quiz_results';
@@ -221,8 +223,9 @@ export default function ResultPage() {
   const extLabel = introvertScore < 40 ? '陽キャ' : introvertScore > 60 ? '陰キャ' : '無キャ';
   const extPercent = introvertScore < 50 ? 100 - introvertScore : introvertScore;
 
-  const xShareText = generateShareText({ typeName: personality.name, extLabel, extPercent, catchphrase: personality.catchphrase, variant, platform: 'x' });
-  const lineShareText = generateShareText({ typeName: personality.name, extLabel, extPercent, catchphrase: personality.catchphrase, variant, platform: 'line' });
+  const displayCode = toDisplayCode(personality.id);
+  const xShareText = generateShareText({ typeName: personality.name, displayCode, extLabel, extPercent, catchphrase: personality.catchphrase, variant, platform: 'x' });
+  const lineShareText = generateShareText({ typeName: personality.name, displayCode, extLabel, extPercent, catchphrase: personality.catchphrase, variant, platform: 'line' });
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(xShareText)}`;
   const lineUrl = `https://line.me/R/msg/text/?${encodeURIComponent(lineShareText)}`;
 
@@ -267,8 +270,8 @@ export default function ResultPage() {
       {/* ① ヒーロー */}
       <div id="result-hero" style={{ background: typeColors.bg, color: typeColors.text }}>
         <div className="max-w-[720px] mx-auto px-6 pt-[56px] pb-[28px]">
-          <p className="font-mono text-[13px] font-bold mb-4" style={{ opacity: 0.65 }}>
-            {personality.id.toUpperCase()} · TYPE {typeNum}
+          <p className="font-mono font-bold mb-1" style={{ fontSize: 'clamp(28px, 5vw, 40px)', opacity: 0.65 }}>
+            {toDisplayCode(personality.id)}
           </p>
           <h1
             className="font-black tracking-[-0.04em] leading-[0.88] mb-5"
@@ -385,13 +388,16 @@ export default function ResultPage() {
                 <div key={factor}>
                   <ScoreBar factor={factor} score={scores[factor]} delay={i * 80} />
                   {comment && (
-                    <p className="text-[13px] leading-[1.6] mt-2 ml-[130px] md:ml-[138px]" style={{ color: '#2A2A2A', opacity: 0.65 }}>
+                    <p className="text-[13px] leading-[1.6] mt-2 ml-[100px] md:ml-[108px]" style={{ color: '#2A2A2A', opacity: 0.65 }}>
                       {comment}
                     </p>
                   )}
                 </div>
               );
             })}
+          </div>
+          <div className="mt-6">
+            <CodeAccordion typeId={personality.id} />
           </div>
         </section>
 
@@ -533,7 +539,7 @@ export default function ResultPage() {
               <div className="text-center mb-6">
                 <div className="text-[40px] mb-3">🔒</div>
                 <p className="font-black text-[20px] mb-1">さらに深く知りたい？</p>
-                <p className="text-[15px]" style={{ opacity: 0.6 }}>あなたのタイプの完全ガイドが読めます</p>
+                <p className="text-[15px]" style={{ opacity: 0.6 }}>【{displayCode} {personality.name}タイプ 完全ガイド】が読めます</p>
               </div>
 
               <div className="mb-6">

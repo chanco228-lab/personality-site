@@ -1,11 +1,11 @@
 const factors = [
-  { code: 'NS', name: '新規性探求', desc: '新しいもの好き／刺激を求める傾向', badgeCls: 'bg-coral text-paper' },
-  { code: 'HA', name: '損害回避',   desc: '慎重さ／不安を感じやすさ',         badgeCls: 'bg-lav text-ink' },
-  { code: 'RD', name: '報酬依存',   desc: '他者からの反応を重視する傾向',     badgeCls: 'bg-hpink text-ink' },
-  { code: 'P',  name: '固執',       desc: '粘り強さ／諦めにくさ',             badgeCls: 'bg-yellow text-ink' },
-  { code: 'SD', name: '自己志向',   desc: '自分の目標に向かう力',             badgeCls: 'bg-turq text-paper' },
-  { code: 'CO', name: '協調性',     desc: '他者と合わせる柔軟さ',             badgeCls: 'bg-hgreen text-ink' },
-  { code: 'ST', name: '自己超越性', desc: '没頭・一体感を感じる力',           badgeCls: 'bg-ink text-paper border-2 border-paper' },
+  { code: 'NS', name: '好奇心',   desc: '新しいもの好き／刺激を求める傾向', badgeCls: 'bg-coral text-paper' },
+  { code: 'HA', name: '慎重さ',   desc: '慎重さ／不安を感じやすさ',         badgeCls: 'bg-lav text-ink' },
+  { code: 'RD', name: '共感力',   desc: '他者からの反応を重視する傾向',     badgeCls: 'bg-hpink text-ink' },
+  { code: 'P',  name: '粘り強さ', desc: '粘り強さ／諦めにくさ',             badgeCls: 'bg-yellow text-ink' },
+  { code: 'SD', name: '自律性',   desc: '自分の目標に向かう力',             badgeCls: 'bg-turq text-paper' },
+  { code: 'CO', name: '協調性',   desc: '他者と合わせる柔軟さ',             badgeCls: 'bg-hgreen text-ink' },
+  { code: 'ST', name: '没頭力',   desc: '没頭・一体感を感じる力',           badgeCls: 'bg-ink text-paper border-2 border-paper' },
 ];
 
 export default function Factors() {

@@ -7,42 +7,42 @@ type Filter = 'すべて' | '陽キャ' | '無キャ' | '陰キャ';
 
 const TYPES = [
   {
-    code: 'hlh_p · 01', name: '指揮官', tag: '陽キャ',
+    code: 'HLH+', name: '指揮官', tag: '陽キャ',
     desc: '人を率いて、最後まで突き進む',
     bg: '#F5E12B', color: '#0E0E0E', codeOpacity: '0.6',
   },
   {
-    code: 'hlh_f · 02', name: '革命家', tag: '陽キャ',
+    code: 'HLH-', name: '革命家', tag: '陽キャ',
     desc: '情熱の炎で世界を変えようとする',
     bg: '#FF6B57', color: '#FFFFFF', codeOpacity: '0.8',
   },
   {
-    code: 'hmh_f · 08', name: '表現者', tag: '陽キャ',
+    code: 'HMH-', name: '表現者', tag: '陽キャ',
     desc: '感情をそのまま表現する天性の演者',
     bg: '#2FC6B8', color: '#FFFFFF', codeOpacity: '0.8',
   },
   {
-    code: 'hhh_p · 13', name: '完璧主義者', tag: '無キャ',
+    code: 'HHH+', name: '完璧主義者', tag: '無キャ',
     desc: '理想の形を追い求め、妥協しない',
     bg: '#B9A7F5', color: '#0E0E0E', codeOpacity: '0.6',
   },
   {
-    code: 'hhh_f · 14', name: '庇護者', tag: '無キャ',
+    code: 'HHH-', name: '庇護者', tag: '無キャ',
     desc: '心配しながら、それでも人のために動く',
     bg: '#FFB8D6', color: '#0E0E0E', codeOpacity: '0.6',
   },
   {
-    code: 'mmm_f · 28', name: '現実主義者', tag: '無キャ',
+    code: 'MMM-', name: '現実主義者', tag: '無キャ',
     desc: 'できることとできないことを冷静に見極める',
     bg: '#9BDC5A', color: '#0E0E0E', codeOpacity: '0.6',
   },
   {
-    code: 'mhl_f · 36', name: '孤高の人', tag: '陰キャ',
+    code: 'MHL-', name: '孤高の人', tag: '陰キャ',
     desc: '群れず、自分の価値観だけを信じて生きる',
     bg: '#FFFFFF', color: '#0E0E0E', codeOpacity: '0.6',
   },
   {
-    code: 'lhl_f · 42', name: '慎想家', tag: '陰キャ',
+    code: 'LHL-', name: '慎想家', tag: '陰キャ',
     desc: '心配と疑念を抱えたまま、動けずにいる',
     bg: '#0E0E0E', color: '#FFFFFF', codeOpacity: '1', codeColor: '#F5E12B',
     descColor: '#E8E8E8',

@@ -10,7 +10,14 @@
       "Bash(kill 13524)",
       "Bash(taskkill //PID 22780 //F)",
       "Bash(taskkill //PID 13524 //F)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(grep:*)",
+      "Bash(node -e \":*)",
+      "Bash(npx tsx -e \":*)",
+      "Bash(wc -l C:/Users/platf/personality-site/data/content/*.json)",
+      "Bash(npx --yes tsx --version)",
+      "Bash(npx tsx:*)",
+      "Bash(node --loader tsx/esm -e \":*)"
     ]
   }
 }

@@ -61,7 +61,7 @@ export default function ScoreBar({ factor, score, delay = 0 }: ScoreBarProps) {
   return (
     <div ref={ref} className="flex items-center gap-3 w-full">
       {/* Left: badge + name */}
-      <div className="flex items-center gap-2 shrink-0" style={{ width: 130 }}>
+      <div className="flex items-center gap-2 shrink-0" style={{ width: 100 }}>
         <span className={`font-mono text-[11px] font-bold px-[6px] py-[2px] rounded-[4px] shrink-0 ${badgeCls}`}>
           {factor}
         </span>
