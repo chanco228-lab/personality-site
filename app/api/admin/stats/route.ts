@@ -141,7 +141,8 @@ async function getV3Stats(since: string, days: number) {
   const { data: logs, error } = await supabaseAdmin
     .from('logs')
     .select('event_name, step, value, created_at')
-    .gte('created_at', since);
+    .gte('created_at', since)
+    .limit(50000);
 
   if (error || !logs) {
     return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 });
@@ -199,7 +200,8 @@ async function getV3Stats(since: string, days: number) {
   const { data: resultRows } = await supabaseAdmin
     .from('results_v3')
     .select('type_id, scores, extroversion, impulsivity')
-    .gte('created_at', since);
+    .gte('created_at', since)
+    .limit(10000);
 
   const typeCounts: Record<string, number> = {};
   resultRows?.forEach((r) => {
