@@ -147,8 +147,7 @@ export default function SectionRating({ typeId, section, resultId }: Props) {
       role="group"
       aria-label="このセクションの評価"
     >
-      <span
-        style={{
+      <span className="hidden sm:inline" style={{
           fontFamily: '"Space Mono", monospace',
           fontSize: '11px',
           fontWeight: 700,
@@ -174,7 +173,7 @@ export default function SectionRating({ typeId, section, resultId }: Props) {
         <svg {...SVG_PROPS}>
           <path d="M20 6 9 17l-5-5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
-        当たってる
+        <span className="hidden sm:inline">当たってる</span>
       </button>
 
       <button
@@ -188,7 +187,7 @@ export default function SectionRating({ typeId, section, resultId }: Props) {
         <svg {...SVG_PROPS}>
           <path d="M18 6 6 18M6 6l12 12" strokeLinecap="round" />
         </svg>
-        ちがう
+        <span className="hidden sm:inline">ちがう</span>
       </button>
     </div>
   );
