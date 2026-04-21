@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
   const auth = req.headers.get('authorization');
   const expected = process.env.ADMIN_PASSWORD;
