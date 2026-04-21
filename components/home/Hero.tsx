@@ -19,10 +19,9 @@ export default function Hero() {
             <span className="font-mono">v2.0 · 人生の道しるべ</span>
           </div>
 
-          {/* H1 — A-3: フォントサイズ下限を36pxに、行間1.1に */}
           <h1
             className="font-black tracking-[-0.03em] mb-6"
-            style={{ fontSize: 'clamp(36px, 6vw, 72px)', lineHeight: 1.1 }}
+            style={{ fontSize: 'clamp(26px, 8vw, 72px)', lineHeight: 1.1 }}
           >
             <span className="block">21問で分かる、</span>
             <span className="block">
@@ -38,7 +37,7 @@ export default function Hero() {
           </h1>
 
           {/* Sub */}
-          <p className="text-[17px] font-medium max-w-[480px] mb-8 leading-[1.7]" style={{ color: '#2A2A2A' }}>
+          <p className="text-[15px] sm:text-[17px] font-medium max-w-[480px] mb-8 leading-[1.7]" style={{ color: '#2A2A2A' }}>
             7つの因子が作り出す、あなただけの性格パターン。クロニンジャーのTCIモデルをベースに、シンプルな21問で判定します。
           </p>
 
@@ -46,8 +45,7 @@ export default function Hero() {
           <Link
             href="/quiz"
             aria-label="無料で診断をはじめる"
-            className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-9 py-[18px]"
-            style={{ fontSize: '20px' }}
+            className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-6 py-[14px] sm:px-9 sm:py-[18px] text-[17px] sm:text-[20px]"
           >
             無料で診断をはじめる <span>→</span>
           </Link>

@@ -106,19 +106,31 @@ export default function QuizV3() {
       logEvent('quiz_v3_complete');
 
       (async () => {
-        const { data } = await supabase.from('results_v3').insert({
-          type_id: typeId,
-          answers: newAnswers,
-          scores,
-          extroversion,
-          impulsivity,
-          sd_level: scores.SD >= 4 ? 'high' : scores.SD <= -4 ? 'low' : 'mid',
-          co_level: scores.CO >= 4 ? 'high' : scores.CO <= -4 ? 'low' : 'mid',
-          st_score: scores.ST,
-          user_agent: navigator.userAgent,
-          referrer: document.referrer || null,
-        }).select().single();
-        if (data) localStorage.setItem(RESULT_ID_KEY, data.id);
+        try {
+          const res = await fetch('/api/save-result', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              typeId,
+              answers: newAnswers,
+              scores,
+              extroversion,
+              impulsivity,
+              sdLevel: scores.SD >= 4 ? 'high' : scores.SD <= -4 ? 'low' : 'mid',
+              coLevel: scores.CO >= 4 ? 'high' : scores.CO <= -4 ? 'low' : 'mid',
+              stScore: scores.ST,
+              referrer: document.referrer || null,
+            }),
+          });
+          if (res.ok) {
+            const json = await res.json();
+            if (json.id) localStorage.setItem(RESULT_ID_KEY, json.id);
+          } else {
+            console.error('[save-result]', res.status);
+          }
+        } catch (e) {
+          console.error('[save-result fetch failed]', e);
+        }
         router.push('/result');
       })();
       return;
