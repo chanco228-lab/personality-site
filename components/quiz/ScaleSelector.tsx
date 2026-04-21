@@ -53,68 +53,76 @@ export default function ScaleSelector({ onAnswer, questionKey }: Props) {
     setTimeout(() => onAnswer(value), 300);
   };
 
+  const circles = CIRCLES.map((c, i) => {
+    const isSelected = selected === c.value;
+    const size = isMobile ? c.sizeM : c.sizeD;
+    const tapSize = Math.max(44, size);
+
+    return (
+      <button
+        key={c.value}
+        onClick={() => doSelect(c.value)}
+        aria-label={c.label}
+        disabled={selected !== null}
+        style={{
+          width: tapSize,
+          height: tapSize,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'transparent',
+          border: 'none',
+          padding: 0,
+          cursor: selected !== null ? 'default' : 'pointer',
+          opacity: mounted ? 1 : 0,
+          transform: mounted
+            ? isSelected ? 'scale(1.15)' : 'scale(1)'
+            : 'scale(0.4)',
+          transition: isSelected
+            ? 'transform 0.15s ease, opacity 0.15s ease'
+            : `transform 0.28s ease ${i * 50}ms, opacity 0.28s ease ${i * 50}ms`,
+        }}
+      >
+        <div
+          style={{
+            width: size,
+            height: size,
+            borderRadius: '50%',
+            border: `${isSelected ? 3 : 2}px solid ${c.color}`,
+            background: isSelected ? c.color : 'transparent',
+            boxShadow: isSelected ? `0 0 0 5px ${c.color}30` : 'none',
+            transition: 'background 0.15s ease, box-shadow 0.15s ease, border-width 0.1s ease',
+          }}
+        />
+      </button>
+    );
+  });
+
   return (
-    <div className="flex flex-col items-center gap-5 w-full select-none">
+    <div className="flex flex-col items-center gap-4 w-full select-none">
+      {/* Mobile: labels above circles */}
+      <div className="flex sm:hidden items-center justify-between w-full px-1">
+        <span className="text-[12px] font-bold" style={{ color: '#2FC6B8' }}>そう思う</span>
+        <span className="text-[12px] font-bold" style={{ color: '#9580D6' }}>そう思わない</span>
+      </div>
+
+      {/* Circles row (mobile: centered, desktop: with side labels) */}
       <div className="flex items-center gap-3 sm:gap-5">
-        {/* Left label */}
+        {/* Desktop left label */}
         <span
-          className="text-[12px] sm:text-[14px] font-bold shrink-0 text-right"
+          className="hidden sm:block text-[14px] font-bold shrink-0 text-right"
           style={{ color: '#2FC6B8', minWidth: 52 }}
         >
           そう思う
         </span>
 
-        {/* 7 circles */}
         <div className="flex items-center gap-[6px] sm:gap-[10px]">
-          {CIRCLES.map((c, i) => {
-            const isSelected = selected === c.value;
-            const size = isMobile ? c.sizeM : c.sizeD;
-            const tapSize = Math.max(44, size);
-
-            return (
-              <button
-                key={c.value}
-                onClick={() => doSelect(c.value)}
-                aria-label={c.label}
-                disabled={selected !== null}
-                style={{
-                  width: tapSize,
-                  height: tapSize,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: 'transparent',
-                  border: 'none',
-                  padding: 0,
-                  cursor: selected !== null ? 'default' : 'pointer',
-                  opacity: mounted ? 1 : 0,
-                  transform: mounted
-                    ? isSelected ? 'scale(1.15)' : 'scale(1)'
-                    : 'scale(0.4)',
-                  transition: isSelected
-                    ? 'transform 0.15s ease, opacity 0.15s ease'
-                    : `transform 0.28s ease ${i * 50}ms, opacity 0.28s ease ${i * 50}ms`,
-                }}
-              >
-                <div
-                  style={{
-                    width: size,
-                    height: size,
-                    borderRadius: '50%',
-                    border: `${isSelected ? 3 : 2}px solid ${c.color}`,
-                    background: isSelected ? c.color : 'transparent',
-                    boxShadow: isSelected ? `0 0 0 5px ${c.color}30` : 'none',
-                    transition: 'background 0.15s ease, box-shadow 0.15s ease, border-width 0.1s ease',
-                  }}
-                />
-              </button>
-            );
-          })}
+          {circles}
         </div>
 
-        {/* Right label */}
+        {/* Desktop right label */}
         <span
-          className="text-[12px] sm:text-[14px] font-bold shrink-0"
+          className="hidden sm:block text-[14px] font-bold shrink-0"
           style={{ color: '#9580D6', minWidth: 60 }}
         >
           そう思わない
