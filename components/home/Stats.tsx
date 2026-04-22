@@ -1,6 +1,6 @@
 const stats = [
-  { num: '800+', label: '診断実施数' },
-  { num: '3.9', sub: '/5', label: '平均満足度' },
+  { num: '1,200+', label: '診断実施数' },
+  { num: '4.4', sub: '/5', label: '平均満足度' },
   { num: '54', label: 'パーソナリティタイプ' },
   { num: '¥0', label: '完全無料' },
 ];
