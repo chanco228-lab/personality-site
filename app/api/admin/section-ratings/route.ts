@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
   });
 
   // セクション全体スコア
-  const sections = ['insights', 'about', 'loss'] as const;
+  const sections = ['insights', 'about', 'loss', 'relationships'] as const;
   const sectionTotals: Record<string, { up: number; down: number }> = {};
   for (const s of sections) sectionTotals[s] = { up: 0, down: 0 };
   for (const row of data) {

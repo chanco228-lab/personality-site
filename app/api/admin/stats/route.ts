@@ -85,6 +85,7 @@ async function getV2Stats(since: string, days: number) {
   resultRows?.forEach((r) => {
     typeCounts[r.type_id] = (typeCounts[r.type_id] ?? 0) + 1;
   });
+  const totalResults = resultRows?.length ?? 0;
   const topTypes = Object.entries(typeCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -132,7 +133,7 @@ async function getV2Stats(since: string, days: number) {
     starts, completes, emails, emailFormViewed, xShared, lineShared,
     step1Count, stepCounts, stepAvgScores,
     feedbackCount, feedbackAvg, feedbackDist,
-    topTypes, factorAvgScores, introvertAvg,
+    topTypes, totalResults, factorAvgScores, introvertAvg,
     dailyStarts,
   });
 }
@@ -207,6 +208,7 @@ async function getV3Stats(since: string, days: number) {
   resultRows?.forEach((r) => {
     typeCounts[r.type_id] = (typeCounts[r.type_id] ?? 0) + 1;
   });
+  const totalResults = resultRows?.length ?? 0;
   const topTypes = Object.entries(typeCounts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5)
@@ -257,7 +259,7 @@ async function getV3Stats(since: string, days: number) {
     starts, completes, emails, emailFormViewed: 0, xShared, lineShared,
     step1Count, stepCounts, stepAvgScores,
     feedbackCount, feedbackAvg, feedbackDist,
-    topTypes, factorAvgScores, introvertAvg,
+    topTypes, totalResults, factorAvgScores, introvertAvg,
     dailyStarts,
     // v3-only fields
     neutralRate, noteClicked, impulsivityAvg,

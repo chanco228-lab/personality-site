@@ -19,6 +19,7 @@ type Stats = {
   feedbackAvg: number;
   feedbackDist: Record<string, number>;
   topTypes: { typeId: string; count: number }[];
+  totalResults: number;
   factorAvgScores: Record<string, number>;
   introvertAvg: number;
   dailyStarts: { date: string; count: number }[];
@@ -50,7 +51,7 @@ type QualityData = {
   lowRanking: QualityRow[];
 };
 
-const SECTION_LABELS: Record<string, string> = { insights: '図星リスト', about: 'あなたについて', loss: '損ポイント' };
+const SECTION_LABELS: Record<string, string> = { insights: '図星リスト', about: 'あなたについて', loss: '損ポイント', relationships: '人間関係' };
 
 const PASS_KEY = 'admin_password';
 
@@ -172,7 +173,7 @@ export default function AdminPage() {
   }));
   const maxCount = Math.max(...stepEntries.map((s) => s.count), 1);
 
-  const totalTypeCount = stats ? stats.topTypes.reduce((s, t) => s + t.count, 0) : 0;
+  const totalTypeCount = stats ? stats.totalResults : 0;
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -252,17 +253,17 @@ export default function AdminPage() {
                 {/* セクション全体スコア */}
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                   <h2 className="text-base font-bold text-slate-800 mb-4">セクション全体スコア</h2>
-                  <div className="grid grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {qualityData.sectionScores.map((s) => {
                       const color = s.upRate == null ? 'slate' : s.upRate >= 80 ? 'teal' : s.upRate >= 60 ? 'amber' : 'red';
                       const colorMap = { teal: 'text-teal-600', amber: 'text-amber-600', red: 'text-red-600', slate: 'text-slate-400' };
                       return (
-                        <div key={s.section} className="bg-slate-50 rounded-xl p-4 text-center">
+                        <div key={s.section} className="bg-slate-50 rounded-xl p-3 text-center min-w-0">
                           <p className="text-sm font-bold text-slate-600 mb-1">{SECTION_LABELS[s.section]}</p>
                           <p className={`text-3xl font-extrabold ${colorMap[color]}`}>
                             {s.upRate != null ? `${s.upRate}%` : '—'}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">👍{s.up} / 👎{s.down}（計{s.total}）</p>
+                          <p className="text-[11px] text-slate-400 mt-1">👍{s.up} / 👎{s.down}（計{s.total}）</p>
                         </div>
                       );
                     })}
