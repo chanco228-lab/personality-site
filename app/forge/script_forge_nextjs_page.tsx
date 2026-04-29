@@ -1,6 +1,14 @@
 "use client";
 
-import { useState, useCallback, useMemo, useRef, useEffect } from "react";
+import {
+  useState,
+  useCallback,
+  useMemo,
+  useRef,
+  useEffect,
+  type CSSProperties,
+  type ReactNode,
+} from "react";
 
 const PASSWORD = "garikimbs";
 
@@ -56,7 +64,17 @@ const TITLE_PATTERNS = `
 7. 警告型：「[対象]注意報＋[内容]」
 8. 対策型：「[対象]撲滅委員会 / [対象]を倒す方法」`;
 
-const TONE_RULES = {
+type CategoryId = "hype" | "serious" | "data";
+type Mode = "script" | "se" | "csv";
+type Category = {
+  id: CategoryId;
+  label: string;
+  sub: string;
+  detail: string;
+  examples: string[];
+};
+
+const TONE_RULES: Record<CategoryId, string> = {
   hype: `
 ## 文体トーン：盛り上げ系（軽い・テンション高め）
 - 体言止め、倒置法、省略を多用
@@ -255,7 +273,7 @@ SEは「文の内容・感情」に合わせて選ぶ。適当に散らすので
 [SE:ビシッとツッコミ2] シュートもパスもキャッチも全部ずれるから、これはマジで早急に修正してほしいバグだ。
 [SE:和太鼓ドンッ] みんなが遭遇したバグは？`;
 
-const SE_CATEGORY_HINTS = {
+const SE_CATEGORY_HINTS: Record<CategoryId, string> = {
   hype: "きらーん、歓声と拍手、シャキーン1を多めに。明るく派手な印象。",
   serious: "小鼓、和太鼓ドンッ、ビシッとツッコミ2を多めに。不穏さ・緊迫感。",
   data: "チーン1を項目ごとに使い分け。大幅ナーフにはバーン（どら）。レア報酬にはきらーん。",
@@ -358,7 +376,7 @@ CSVの1セル＝字幕の1画面分（改行なしの1行テキスト）。
 // CATEGORIES (3 categories with rich descriptions)
 // ============================================================
 
-const CATEGORIES = [
+const CATEGORIES: Category[] = [
   {
     id: "hype",
     label: "🔥 盛り上げ系",
@@ -400,6 +418,12 @@ const CATEGORIES = [
   },
 ];
 
+const MODE_TABS: Array<{ id: Mode; label: string }> = [
+  { id: "script", label: "① 台本生成" },
+  { id: "se", label: "② SE割り当て" },
+  { id: "csv", label: "③ CSV字幕" },
+];
+
 // ============================================================
 // HELPERS
 // ============================================================
@@ -436,12 +460,12 @@ export default function ForgePage() {
   const [pw, setPw] = useState("");
   const [pwErr, setPwErr] = useState(false);
 
-  const [cat, setCat] = useState("");
+  const [cat, setCat] = useState<CategoryId | "">("");
   const [count, setCount] = useState(3);
   const [topic, setTopic] = useState("");
   const [mats, setMats] = useState("");
   const [supp, setSupp] = useState("");
-  const [mode, setMode] = useState("script");
+  const [mode, setMode] = useState<Mode>("script");
   const [seText, setSeText] = useState("");
   const [csvText, setCsvText] = useState("");
   const [csvLabel, setCsvLabel] = useState("ショート用1");
@@ -452,7 +476,7 @@ export default function ForgePage() {
       return CSV_PROMPT.replace(/ラベル/g, csvLabel) + `\n\n# ラベル：${csvLabel}\n\n# 台本\n${csvText}`;
     }
     if (mode === "se") {
-      const hint = SE_CATEGORY_HINTS[cat] || "";
+      const hint = cat ? SE_CATEGORY_HINTS[cat] : "";
       return [
         SE_PROMPT,
         `\n# SE数量：全ての文に1個ずつ（目安：${getSeCount(count)}）`,
@@ -460,7 +484,7 @@ export default function ForgePage() {
         `\n# 台本\n${seText}`,
       ].join("\n");
     }
-    const tone = TONE_RULES[cat] || "";
+    const tone = cat ? TONE_RULES[cat] : "";
     const label = CATEGORIES.find(c => c.id === cat)?.label || "未選択";
     const suppB = supp.trim() ? `\n【補足説明・追加指示】\n${supp}` : "";
     return [
@@ -503,7 +527,7 @@ export default function ForgePage() {
     }
   }, [prompt]);
 
-  const preRef = useRef(null);
+  const preRef = useRef<HTMLPreElement>(null);
   useEffect(() => {
     if (preRef.current) {
       preRef.current.scrollTop = preRef.current.scrollHeight;
@@ -547,11 +571,7 @@ export default function ForgePage() {
           <span style={S.brand2}>SCRIPT FORGE</span>
         </div>
         <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-          {[
-            { id: "script", label: "① 台本生成" },
-            { id: "se", label: "② SE割り当て" },
-            { id: "csv", label: "③ CSV字幕" },
-          ].map(m => (
+          {MODE_TABS.map(m => (
             <button
               key={m.id}
               onClick={() => setMode(m.id)}
@@ -725,7 +745,7 @@ export default function ForgePage() {
   );
 }
 
-function Block({ n, t, children }: { n: string; t: string; children: React.ReactNode }) {
+function Block({ n, t, children }: { n: string; t: string; children: ReactNode }) {
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
@@ -755,7 +775,7 @@ const C = {
   hi: "#1a1a2e",
 };
 
-const S = {
+const S: Record<string, CSSProperties> = {
   authBg: {
     minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
     background: `linear-gradient(135deg, #f8f6ff 0%, #e8e4f8 40%, #fce4ec 100%)`,
