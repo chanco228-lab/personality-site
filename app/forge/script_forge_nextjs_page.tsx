@@ -485,7 +485,9 @@ export default function ForgePage() {
       ].join("\n");
     }
     const tone = cat ? TONE_RULES[cat] : "";
-    const label = CATEGORIES.find(c => c.id === cat)?.label || "未選択";
+    const category = CATEGORIES.find(c => c.id === cat);
+    const label = category?.label || "未選択";
+    const categorySub = category?.sub || "未選択";
     const suppB = supp.trim() ? `\n【補足説明・追加指示】\n${supp}` : "";
     return [
       SYSTEM_PROMPT_HEADER,
@@ -502,6 +504,7 @@ export default function ForgePage() {
       `\n---\n\n【お題】\n${topic || "（未入力）"}`,
       `\n【情報素材】\n${mats || "（未入力）"}`,
       `\n【カテゴリ】${label}`,
+      `\n【カテゴリ補足】${categorySub}`,
       suppB,
     ].join("\n");
   }, [cat, count, topic, mats, supp, mode, seText, csvText, csvLabel]);
