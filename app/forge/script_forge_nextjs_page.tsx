@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
 
-const PASSWORD = "garikim228";
+const PASSWORD = "garikimbs";
 
 // ============================================================
 // PROMPT TEMPLATES
@@ -404,7 +404,7 @@ const CATEGORIES = [
 // HELPERS
 // ============================================================
 
-function getDuration(n) {
+function getDuration(n: number) {
   if (n <= 1) return "30〜45秒";
   if (n <= 3) return "45〜60秒";
   if (n <= 5) return "60〜75秒";
@@ -415,7 +415,7 @@ function getDuration(n) {
   return "150秒以上";
 }
 
-function getSeCount(n) {
+function getSeCount(n: number) {
   // Roughly 3-4 sentences per item + title + closing = per-sentence SE
   if (n <= 1) return "8〜12個";
   if (n <= 3) return "12〜18個";
@@ -725,7 +725,7 @@ export default function ForgePage() {
   );
 }
 
-function Block({ n, t, children }) {
+function Block({ n, t, children }: { n: string; t: string; children: React.ReactNode }) {
   return (
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 10 }}>
