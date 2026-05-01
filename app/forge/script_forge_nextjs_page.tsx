@@ -301,22 +301,35 @@ const CSV_PROMPT = `あなたはYouTubeショート動画の字幕データ作�
 - 画面の横幅は13文字。1行は絶対に13文字を超えない
 - 字幕は最大2行表示＝1字幕あたり最大26文字
 - 26文字を超える場合は必ず次の字幕に分割する
-- 1字幕は13〜24文字が最も多いパターン。短すぎる字幕を作らないことが重要
-- 短すぎる字幕（4文字以下）は不自然なので前後と結合する
+- 1字幕は15〜25文字が最も多いパターン。短すぎる字幕を作らないことが最も重要
+- 分割に迷ったら結合する。短すぎるより長い方がマシ
+- 10文字以下の字幕は前後どちらかと結合する（結合後26文字以内であること）
+- 特に感情語・オチ単体（「えぐい」「やばい」「反則すぎる」「地味にやばい」等）は絶対に単独行にしない
 - 声に出して1〜2秒で読める量が目安
 
-## 分割しすぎ禁止（最重要）
-- 26文字以内に収まるなら、意味が繋がっている節は1つの字幕にまとめる
-- 短い文（13文字以下）が連続する場合、結合して26文字以内に収まるなら結合する
-- 読点「、」や接続助詞「のに」「けど」「から」で終わる文は、次の節と結合できないか必ず検討する
-- 1字幕が8文字以下になったら、前後どちらかと結合する（4文字以下は必須結合のまま）
-- 判断基準：「この字幕だけ画面に出たとき、短すぎて物足りなくないか？」。物足りないなら結合
+## 分割しすぎ禁止（最重要ルール）
+字幕を作ったら、必ず「隣の字幕と結合できないか」を全行チェックする。
+26文字以内に収まるなら結合する。分割より結合を優先すること。
 
-## 結合の具体例
-- NG: 「簡単で使いやすいのに」（11文字）＋「タンクにも中射程にも強い」（13文字）→ 別々
-- OK: 「簡単で使いやすいのにタンクにも中射程にも強い」（24文字）→ 1つにまとめる
-- NG: 「相手が終わるの」（8文字）＋「地味にやばい」（7文字）→ 別々
-- OK: 「相手が終わるの地味にやばい」（15文字）→ 1つにまとめる
+### 結合の判断基準
+1. 現在の字幕と次の字幕を繋げて26文字以内に収まるか？ → 収まるなら結合する
+2. 10文字以下の字幕は単独で存在してはいけない。必ず前後どちらかと結合する
+3. 「〜のに」「〜けど」「〜から」「〜て」「〜正直」で終わる字幕は、次の字幕と結合できないか必ず検討する
+4. 感情語・オチ（「えぐい」「やばい」「反則すぎる」等）が単独の字幕になっていたら、前の字幕と結合する
+5. 短い動作の列挙（「〜する」「〜見る」「〜逃げる」）は、26文字以内に収まる限りまとめる
+
+### 結合の具体例（全てOKパターン）
+- 「簡単で使いやすいのにタンクにも中射程にも強い万能キャラ」（25文字）→ OK、1字幕
+- 「近距離に来た相手を一気に処理できるのがえぐい」（22文字）→ OK、1字幕
+- 「毒で回復を止めるタンクを見る足の速さで逃げる」（22文字）→ OK、1字幕
+- 「やれることが多すぎて正直弱体化されてもまだ普通に強い」（25文字）→ OK、1字幕
+- 「これもうHP高いキャラほど逃げられない税務署だろ」（23文字）→ OK、1字幕
+- 「もはやブロスタじゃなくてエドガーから逃げるホラーゲーム」（25文字）→ OK、1字幕
+
+### NGパターン（これが出たら失敗）
+- 「えぐい」が単独の行 → 前の字幕と結合すべき
+- 「万能キャラ」が単独の行かつ前と結合して26文字以内 → 結合すべき
+- 10文字以下の行が前後と結合可能なのに単独 → 結合すべき
 
 ## CSVと字幕の関係
 CSVの1セル＝字幕の1画面分（改行なしの1行テキスト）。
@@ -481,6 +494,7 @@ export default function ForgePage() {
   const [mode, setMode] = useState<Mode>("script");
   const [seText, setSeText] = useState("");
   const [csvText, setCsvText] = useState("");
+  const [csvResult, setCsvResult] = useState("");
   const [csvLabel, setCsvLabel] = useState("ショート用1");
   const [copied, setCopied] = useState(false);
 
@@ -542,6 +556,20 @@ export default function ForgePage() {
       });
     }
   }, [prompt]);
+
+  const downloadCsv = useCallback(() => {
+    const content = csvResult.trim();
+    if (!content) return;
+
+    const bom = "\uFEFF";
+    const blob = new Blob([bom + content], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "subtitle.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [csvResult]);
 
   const preRef = useRef<HTMLPreElement>(null);
   useEffect(() => {
@@ -720,15 +748,32 @@ export default function ForgePage() {
                   onChange={e => setCsvText(e.target.value)}
                   placeholder={"完成した台本をここに貼り付け。\nSEタグ（[SE:〇〇]）が含まれていても自動で除去されます。"}
                   style={S.ta}
-                  rows={14}
+                  rows={10}
                 />
+              </Block>
+
+              <Block n="3" t="CSV結果 → ダウンロード">
+                <textarea
+                  value={csvResult}
+                  onChange={e => setCsvResult(e.target.value)}
+                  placeholder="ChatGPTが出力したCSVデータをここに貼り付け"
+                  style={S.ta}
+                  rows={8}
+                />
+                <button
+                  onClick={downloadCsv}
+                  disabled={!csvResult.trim()}
+                  style={!csvResult.trim() ? S.dlBtnDisabled : S.dlBtn}
+                >
+                  CSVダウンロード
+                </button>
               </Block>
 
               <div style={S.csvInfo}>
                 <p style={{ margin: "0 0 8px", fontWeight: 700, color: C.hi, fontSize: 13 }}>📐 字幕ルール</p>
                 <p style={{ margin: "0 0 4px", fontSize: 12, color: C.txt, lineHeight: 1.6 }}>
-                  1行13文字×最大2行＝1字幕は最大26文字。実際は13〜20文字で区切ることが多い。
-                  CSVは改行なし（編集ソフトが13文字で自動改行）。分割位置はAIが文脈で判断。
+                  1行13文字×最大2行＝1字幕は最大26文字。実際は15〜25文字が多く、短い節はなるべく結合します。
+                  CSVは改行なし（編集ソフトが13文字で自動改行）。分割に迷ったら結合優先です。
                 </p>
                 <p style={{ margin: 0, fontSize: 11, color: C.dim }}>
                   出力例：{csvLabel},体力が実質3万のセコレットが誕生する
@@ -888,6 +933,17 @@ const S: Record<string, CSSProperties> = {
   csvInfo: {
     padding: "14px 16px", background: C.sf, border: `1.5px solid ${C.bdr}`,
     borderRadius: 12, marginTop: 4,
+  },
+  dlBtn: {
+    width: "100%", padding: "11px", marginTop: 10,
+    background: `linear-gradient(135deg, ${C.acc}, ${C.acc2})`,
+    color: "#fff", border: "none", borderRadius: 10, fontSize: 14, fontWeight: 800,
+    cursor: "pointer", boxShadow: "0 4px 14px rgba(108,92,231,0.25)",
+  },
+  dlBtnDisabled: {
+    width: "100%", padding: "11px", marginTop: 10,
+    background: "#d7dbe3", color: "#7f8794", border: "none", borderRadius: 10,
+    fontSize: 14, fontWeight: 800, cursor: "not-allowed", boxShadow: "none",
   },
   outHdr: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
