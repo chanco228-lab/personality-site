@@ -11,11 +11,9 @@ import {
 } from "react";
 
 import {
-  CATEGORIES,
   MODE_TABS,
   SCRIPT_REVIEW_RUBRIC,
   TOPIC_TAGS,
-  type CategoryId,
   type Mode,
   type TopicTagId,
 } from "@/data/forge/promptConfig";
@@ -41,7 +39,6 @@ export default function ForgePage() {
   const [pw, setPw] = useState("");
   const [pwErr, setPwErr] = useState(false);
 
-  const [cat, setCat] = useState<CategoryId | "">("");
   const [count, setCount] = useState(3);
   const [ideaText, setIdeaText] = useState("");
   const [topic, setTopic] = useState("");
@@ -71,7 +68,6 @@ export default function ForgePage() {
 
   const prompt = useMemo(() => buildForgePrompt({
     mode,
-    cat,
     count,
     topic,
     mats,
@@ -80,11 +76,10 @@ export default function ForgePage() {
     csvText,
     csvLabel,
     ideaText,
-  }), [mode, cat, count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
+  }), [mode, count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
 
   const scriptPromptSnapshot = useMemo(() => buildForgePrompt({
     mode: "script",
-    cat,
     count,
     topic,
     mats,
@@ -93,7 +88,7 @@ export default function ForgePage() {
     csvText,
     csvLabel,
     ideaText,
-  }), [cat, count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
+  }), [count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
 
   const analyticsInsights = useMemo(() => buildAnalyticsInsights({
     views,
@@ -672,17 +667,7 @@ export default function ForgePage() {
             </>
           ) : mode === "se" ? (
             <>
-              <Block n="1" t="カテゴリ（SE傾向）">
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {CATEGORIES.map(c => (
-                    <button key={c.id} onClick={() => setCat(c.id)} style={cat === c.id ? S.chipOn : S.chip}>
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                {cat && <div style={S.seBox}>カテゴリごとのSE傾向はプロンプト内に自動で反映されます。CSVで分割した字幕行ごとにSEを1つずつ入れる前提です。</div>}
-              </Block>
-              <Block n="2" t="CSV分割済みテキストを貼り付け">
+              <Block n="1" t="CSV分割済みテキストを貼り付け">
                 <textarea
                   value={seText}
                   onChange={e => setSeText(e.target.value)}

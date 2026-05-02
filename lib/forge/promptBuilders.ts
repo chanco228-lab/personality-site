@@ -1,11 +1,8 @@
 import {
-  CATEGORIES,
   CSV_PROMPT,
   IDEA_DEEP_DIVE_PROMPT,
-  SE_CATEGORY_HINTS,
   SE_PROMPT,
   SCRIPT_PROMPT_V5,
-  type CategoryId,
   type Mode,
 } from "@/data/forge/promptConfig";
 
@@ -33,7 +30,6 @@ export function getSeCount(n: number) {
 
 type BuildForgePromptInput = {
   mode: Mode;
-  cat: CategoryId | "";
   count: number;
   topic: string;
   mats: string;
@@ -47,7 +43,6 @@ type BuildForgePromptInput = {
 export function buildForgePrompt(input: BuildForgePromptInput) {
   const {
     mode,
-    cat,
     count,
     topic,
     mats,
@@ -92,11 +87,9 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
   }
 
   if (mode === "se") {
-    const hint = cat ? SE_CATEGORY_HINTS[cat] : "";
     return [
       SE_PROMPT,
       `\n# SE数量：全ての文に1個ずつ（目安：${getSeCount(count)}）`,
-      `\n# カテゴリ別SE傾向\n${hint}`,
       `\n# CSV分割済みテキスト\n${seText}`,
     ].join("\n");
   }

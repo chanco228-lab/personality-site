@@ -282,7 +282,7 @@ export function parseReviewCsv(csv: string): ForgeReviewEntry[] {
       return {
         id: `csv-${Date.now()}-${index}`,
         savedAt,
-        topicTag: normalizeTopicTag(cellByHeader(row, indexByHeader, ["topicTag", "ネタ種類", "tag", "category"])),
+        topicTag: normalizeTopicTag(cellByHeader(row, indexByHeader, ["topicTag", "ネタ種類", "tag"])),
         topic,
         score: Number(cellByHeader(row, indexByHeader, ["score"])) || 3,
         promptSnapshot: cellByHeader(row, indexByHeader, ["promptSnapshot"]),
