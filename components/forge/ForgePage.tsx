@@ -64,6 +64,12 @@ function buildPostedAt(month: string, day: string, hour: string) {
   return parts.join(" ");
 }
 
+function averageMetric(values: Array<number | null>) {
+  const known = values.filter((value): value is number => value !== null);
+  if (known.length === 0) return null;
+  return Math.round((known.reduce((sum, value) => sum + value, 0) / known.length) * 10) / 10;
+}
+
 export default function ForgePage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
@@ -151,6 +157,50 @@ export default function ForgePage() {
       return (a.analytics.avgViewRate ?? 101) - (b.analytics.avgViewRate ?? 101);
     }).slice(0, 5)
   ), [reviewEntries]);
+
+  const uniqueTitleCount = useMemo(() => (
+    new Set(reviewEntries.map(entry => getEntryTitle(entry))).size
+  ), [reviewEntries]);
+
+  const averageScore = useMemo(() => (
+    reviewEntries.length === 0
+      ? null
+      : Math.round((reviewEntries.reduce((sum, entry) => sum + entry.score, 0) / reviewEntries.length) * 10) / 10
+  ), [reviewEntries]);
+
+  const averageLoadedViewRate = useMemo(() => (
+    averageMetric(reviewEntries.map(entry => entry.analytics.avgViewRate))
+  ), [reviewEntries]);
+
+  const sourceBreakdown = useMemo(() => (
+    (Object.keys(SCRIPT_SOURCE_LABELS) as ForgeScriptSource[]).map(source => ({
+      source,
+      label: getSourceLabel(source),
+      count: reviewEntries.filter(entry => entry.sourceType === source).length,
+    })).filter(item => item.count > 0)
+  ), [reviewEntries]);
+
+  const tagBreakdown = useMemo(() => (
+    TOPIC_TAGS.map(tag => ({
+      id: tag.id,
+      label: tag.label,
+      count: reviewEntries.filter(entry => entry.topicTag === tag.id).length,
+    })).filter(item => item.count > 0).sort((a, b) => b.count - a.count).slice(0, 6)
+  ), [reviewEntries]);
+
+  const currentDraftSummary = useMemo(() => ({
+    title: reviewTitle.trim() || "未入力",
+    source: `${getSourceLabel(scriptSource)}${sourceName.trim() ? `:${sourceName.trim()}` : ""}`,
+    tag: getTopicTagLabel(topicTag),
+    duration: metricText(reviewAnalytics.videoDuration, "秒"),
+    views: metricText(reviewAnalytics.views),
+    avgViewRate: metricText(reviewAnalytics.avgViewRate, "%"),
+    likes: metricText(reviewAnalytics.likes),
+    subscriberGain: metricText(reviewAnalytics.subscriberGain),
+    retentionRate: metricText(reviewAnalytics.retentionRate, "%"),
+    postedAt: reviewAnalytics.postedAt || "未入力",
+    scriptLines: reviewScript.split(/\r?\n/).filter(line => line.trim()).length,
+  }), [reviewTitle, scriptSource, sourceName, topicTag, reviewAnalytics, reviewScript]);
 
   const copy = useCallback(() => {
     try {
@@ -799,35 +849,150 @@ export default function ForgePage() {
         <div style={S.right}>
           <div style={S.outHdr}>
             <span style={{ fontSize: 14, fontWeight: 700, color: C.hi }}>
-              {mode === "script"
+              {mode === "review"
+                ? "📊 読み込みデータダッシュボード"
+                : mode === "script"
                 ? "📋 台本生成プロンプト"
                 : mode === "idea"
                   ? "🔎 ネタ深掘りプロンプト"
                 : mode === "csv"
                   ? "📐 CSV字幕プロンプト"
-                  : mode === "se"
-                    ? "🔊 SE割り当てプロンプト"
-                    : "📊 評価DB / 基礎プロンプト改善"}
+                  : "🔊 SE割り当てプロンプト"}
             </span>
-            <button onClick={copy} style={copied ? S.cpDone : S.cpBtn}>
-              {copied ? "✓ コピー完了" : "コピー"}
-            </button>
+            {mode === "review" ? (
+              <span style={S.liveBadge}>左の入力に連動</span>
+            ) : (
+              <button onClick={copy} style={copied ? S.cpDone : S.cpBtn}>
+                {copied ? "✓ コピー完了" : "コピー"}
+              </button>
+            )}
           </div>
-          <pre ref={preRef} style={S.pre}>{prompt}</pre>
-          <div style={S.outFoot}>
-            <span style={{ fontVariantNumeric: "tabular-nums" }}>{prompt.length.toLocaleString()} 文字</span>
-            <span style={{ color: C.acc, fontWeight: 700, fontSize: 11 }}>
-              {mode === "review"
-                ? "→ 台本と指標を集計 → 基礎プロンプト改訂へ"
-                : mode === "idea"
-                ? "→ ChatGPTに貼る → 不足情報と切り口を確認 → ①へ"
-                : mode === "script"
-                ? "→ ChatGPTに貼る → 結果を評価 → 基礎文を改訂"
-                : mode === "se"
-                  ? "→ ChatGPTに貼る → CSV行ごとのSE付き完成版"
-                  : "→ ChatGPTに貼る → CSV分割完了 → ③へ"}
-            </span>
-          </div>
+          {mode === "review" ? (
+            <div style={S.dashboardPane}>
+              <div style={S.dashboardHero}>
+                <p style={S.dashboardHeroEyebrow}>Loaded Data</p>
+                <h3 style={S.dashboardHeroTitle}>いま読めている評価DBを、その場で要約</h3>
+                <p style={S.dashboardHeroText}>
+                  右側はプロンプトではなく、左で編集中の1件と、読み込み済みログ全体の状態を視覚的にまとめる欄です。
+                </p>
+              </div>
+
+              <div style={S.dashboardStatGrid}>
+                <DashboardStatCard label="読み込み件数" value={`${reviewEntries.length}件`} tone="dark" />
+                <DashboardStatCard label="タイトル数" value={`${uniqueTitleCount}件`} />
+                <DashboardStatCard label="平均評価" value={metricText(averageScore)} />
+                <DashboardStatCard label="平均視聴率" value={metricText(averageLoadedViewRate, "%")} />
+              </div>
+
+              <div style={S.dashboardSection}>
+                <div style={S.dashboardSectionHead}>
+                  <span style={S.dashboardSectionTitle}>現在の入力プレビュー</span>
+                  <span style={S.dashboardSectionMeta}>{currentDraftSummary.scriptLines}行</span>
+                </div>
+                <div style={S.previewCard}>
+                  <p style={S.previewTitle}>{currentDraftSummary.title}</p>
+                  <div style={S.previewChips}>
+                    <span style={S.previewChip}>{currentDraftSummary.source}</span>
+                    <span style={S.previewChip}>{currentDraftSummary.tag}</span>
+                    <span style={S.previewChip}>動画時間 {currentDraftSummary.duration}</span>
+                    <span style={S.previewChip}>投稿 {currentDraftSummary.postedAt}</span>
+                  </div>
+                  <div style={S.previewMetricGrid}>
+                    <MiniMetric label="再生" value={currentDraftSummary.views} />
+                    <MiniMetric label="視聴率" value={currentDraftSummary.avgViewRate} />
+                    <MiniMetric label="高評価" value={currentDraftSummary.likes} />
+                    <MiniMetric label="登録者増" value={currentDraftSummary.subscriberGain} />
+                    <MiniMetric label="視聴継続" value={currentDraftSummary.retentionRate} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={S.dashboardTwinGrid}>
+                <div style={S.dashboardSection}>
+                  <div style={S.dashboardSectionHead}>
+                    <span style={S.dashboardSectionTitle}>作成元の内訳</span>
+                    <span style={S.dashboardSectionMeta}>{sourceBreakdown.length}種類</span>
+                  </div>
+                  {sourceBreakdown.length === 0 ? (
+                    <p style={S.emptyNote}>まだ読み込まれたデータはありません。</p>
+                  ) : (
+                    <div style={S.segmentList}>
+                      {sourceBreakdown.map(item => (
+                        <div key={item.source} style={S.segmentRow}>
+                          <span style={S.segmentLabel}>{item.label}</span>
+                          <span style={S.segmentValue}>{item.count}件</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div style={S.dashboardSection}>
+                  <div style={S.dashboardSectionHead}>
+                    <span style={S.dashboardSectionTitle}>ネタ種類の内訳</span>
+                    <span style={S.dashboardSectionMeta}>上位6件</span>
+                  </div>
+                  {tagBreakdown.length === 0 ? (
+                    <p style={S.emptyNote}>まだタグ付きデータがありません。</p>
+                  ) : (
+                    <div style={S.segmentList}>
+                      {tagBreakdown.map(item => (
+                        <div key={item.id} style={S.segmentRow}>
+                          <span style={S.segmentLabel}>{item.label}</span>
+                          <span style={S.segmentValue}>{item.count}件</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div style={S.dashboardSection}>
+                <div style={S.dashboardSectionHead}>
+                  <span style={S.dashboardSectionTitle}>最新の読み込みデータ</span>
+                  <span style={S.dashboardSectionMeta}>{Math.min(reviewEntries.length, 5)}件表示</span>
+                </div>
+                {reviewEntries.length === 0 ? (
+                  <p style={S.emptyNote}>CSVを読み込むか、左側から1件保存するとここに表示されます。</p>
+                ) : (
+                  <div style={S.snapshotList}>
+                    {reviewEntries.slice(0, 5).map(entry => (
+                      <div key={entry.id} style={S.snapshotItem}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={S.snapshotTitle}>{getEntryTitle(entry)}</p>
+                            <p style={S.snapshotMeta}>
+                              {getSourceLabel(entry.sourceType)} / {getTopicTagLabel(entry.topicTag)} / 動画時間 {metricText(entry.analytics.videoDuration, "秒")}
+                            </p>
+                          </div>
+                          <span style={S.snapshotScore}>{entry.score}/5</span>
+                        </div>
+                        <p style={S.snapshotData}>
+                          再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 登録者増 {metricText(entry.analytics.subscriberGain)} / 視聴継続 {metricText(entry.analytics.retentionRate, "%")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            <>
+              <pre ref={preRef} style={S.pre}>{prompt}</pre>
+              <div style={S.outFoot}>
+                <span style={{ fontVariantNumeric: "tabular-nums" }}>{prompt.length.toLocaleString()} 文字</span>
+                <span style={{ color: C.acc, fontWeight: 700, fontSize: 11 }}>
+                  {mode === "idea"
+                    ? "→ ChatGPTに貼る → 不足情報と切り口を確認 → ①へ"
+                    : mode === "script"
+                    ? "→ ChatGPTに貼る → 結果を評価 → 基礎文を改訂"
+                    : mode === "se"
+                      ? "→ ChatGPTに貼る → CSV行ごとのSE付き完成版"
+                      : "→ ChatGPTに貼る → CSV分割完了 → ③へ"}
+                </span>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -860,6 +1025,34 @@ function MetricField({
         style={S.metricInput}
       />
     </label>
+  );
+}
+
+function DashboardStatCard({
+  label,
+  value,
+  tone = "light",
+}: {
+  label: string;
+  value: string;
+  tone?: "light" | "dark";
+}) {
+  const isDark = tone === "dark";
+
+  return (
+    <div style={isDark ? S.dashboardStatCardDark : S.dashboardStatCard}>
+      <p style={isDark ? S.dashboardStatLabelDark : S.dashboardStatLabel}>{label}</p>
+      <p style={isDark ? S.dashboardStatValueDark : S.dashboardStatValue}>{value}</p>
+    </div>
+  );
+}
+
+function MiniMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={S.miniMetric}>
+      <span style={S.miniMetricLabel}>{label}</span>
+      <span style={S.miniMetricValue}>{value}</span>
+    </div>
   );
 }
 
@@ -1182,6 +1375,250 @@ const S: Record<string, CSSProperties> = {
   linkBtnDisabled: {
     marginTop: 10, padding: 0, background: "transparent", border: "none",
     color: "#bfc6d0", fontSize: 12, fontWeight: 700, cursor: "not-allowed",
+  },
+  liveBadge: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: "#eef2ff",
+    color: C.acc,
+    fontSize: 11,
+    fontWeight: 800,
+  },
+  dashboardPane: {
+    flex: 1,
+    overflowY: "auto",
+    padding: "18px 20px",
+    background: "linear-gradient(180deg, #fbfcff 0%, #f6f7fb 100%)",
+  },
+  dashboardHero: {
+    padding: "18px 18px 16px",
+    borderRadius: 22,
+    background: "linear-gradient(135deg, #ffffff 0%, #f1f6ff 100%)",
+    border: `1px solid ${C.bdr}`,
+    boxShadow: "0 16px 40px rgba(20,32,70,0.08)",
+    marginBottom: 14,
+  },
+  dashboardHeroEyebrow: {
+    margin: "0 0 6px",
+    fontSize: 10,
+    fontWeight: 900,
+    letterSpacing: "0.12em",
+    color: C.acc,
+    textTransform: "uppercase",
+  },
+  dashboardHeroTitle: {
+    margin: "0 0 6px",
+    fontSize: 22,
+    lineHeight: 1.2,
+    color: C.hi,
+    fontWeight: 900,
+    letterSpacing: "-0.03em",
+  },
+  dashboardHeroText: {
+    margin: 0,
+    fontSize: 12,
+    lineHeight: 1.7,
+    color: C.dim,
+  },
+  dashboardStatGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(2, minmax(0, 1fr))",
+    gap: 10,
+    marginBottom: 14,
+  },
+  dashboardStatCard: {
+    padding: "14px 15px",
+    borderRadius: 18,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+    boxShadow: "0 8px 24px rgba(20,32,70,0.05)",
+  },
+  dashboardStatCardDark: {
+    padding: "14px 15px",
+    borderRadius: 18,
+    background: C.hi,
+    border: `1px solid ${C.hi}`,
+    boxShadow: "0 12px 26px rgba(26,26,46,0.16)",
+  },
+  dashboardStatLabel: {
+    margin: "0 0 8px",
+    fontSize: 11,
+    color: C.dim,
+    fontWeight: 700,
+  },
+  dashboardStatLabelDark: {
+    margin: "0 0 8px",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.72)",
+    fontWeight: 700,
+  },
+  dashboardStatValue: {
+    margin: 0,
+    fontSize: 24,
+    color: C.hi,
+    fontWeight: 900,
+    letterSpacing: "-0.03em",
+  },
+  dashboardStatValueDark: {
+    margin: 0,
+    fontSize: 24,
+    color: "#fff",
+    fontWeight: 900,
+    letterSpacing: "-0.03em",
+  },
+  dashboardSection: {
+    padding: "14px 15px",
+    borderRadius: 18,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+    boxShadow: "0 8px 24px rgba(20,32,70,0.05)",
+    marginBottom: 12,
+  },
+  dashboardSectionHead: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    marginBottom: 10,
+  },
+  dashboardSectionTitle: {
+    fontSize: 13,
+    fontWeight: 900,
+    color: C.hi,
+  },
+  dashboardSectionMeta: {
+    fontSize: 10,
+    color: C.dim,
+    fontWeight: 700,
+  },
+  previewCard: {
+    padding: "14px",
+    borderRadius: 16,
+    background: "linear-gradient(135deg, #f9fbff 0%, #f4f0ff 100%)",
+    border: `1px solid ${C.bdr}`,
+  },
+  previewTitle: {
+    margin: "0 0 8px",
+    fontSize: 18,
+    fontWeight: 900,
+    lineHeight: 1.3,
+    color: C.hi,
+    letterSpacing: "-0.02em",
+  },
+  previewChips: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 10,
+  },
+  previewChip: {
+    padding: "5px 9px",
+    borderRadius: 999,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+    color: C.dim,
+    fontSize: 11,
+    fontWeight: 700,
+  },
+  previewMetricGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+    gap: 8,
+  },
+  miniMetric: {
+    padding: "10px 10px 8px",
+    borderRadius: 14,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+    display: "flex",
+    flexDirection: "column",
+    gap: 4,
+  },
+  miniMetricLabel: {
+    fontSize: 10,
+    color: C.dim,
+    fontWeight: 700,
+  },
+  miniMetricValue: {
+    fontSize: 13,
+    color: C.hi,
+    fontWeight: 900,
+  },
+  dashboardTwinGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 12,
+  },
+  segmentList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  segmentRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    padding: "10px 12px",
+    borderRadius: 14,
+    background: "#f7f8fb",
+    border: `1px solid ${C.bdr}`,
+  },
+  segmentLabel: {
+    fontSize: 12,
+    color: C.hi,
+    fontWeight: 700,
+  },
+  segmentValue: {
+    fontSize: 12,
+    color: C.acc,
+    fontWeight: 900,
+  },
+  emptyNote: {
+    margin: 0,
+    fontSize: 12,
+    color: C.dim,
+    lineHeight: 1.6,
+  },
+  snapshotList: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
+  snapshotItem: {
+    padding: "12px 13px",
+    borderRadius: 16,
+    background: "#f8fafc",
+    border: `1px solid ${C.bdr}`,
+  },
+  snapshotTitle: {
+    margin: 0,
+    fontSize: 13,
+    fontWeight: 800,
+    lineHeight: 1.4,
+    color: C.hi,
+  },
+  snapshotMeta: {
+    margin: "4px 0 0",
+    fontSize: 11,
+    color: C.dim,
+    lineHeight: 1.5,
+  },
+  snapshotScore: {
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: C.accDim,
+    color: C.acc,
+    fontSize: 11,
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+    height: "fit-content",
+  },
+  snapshotData: {
+    margin: "8px 0 0",
+    fontSize: 11,
+    color: C.txt,
+    lineHeight: 1.55,
   },
   outHdr: {
     display: "flex", alignItems: "center", justifyContent: "space-between",
