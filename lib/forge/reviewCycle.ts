@@ -11,11 +11,12 @@ export const SCRIPT_SOURCE_LABELS: Record<ForgeScriptSource, string> = {
 };
 
 export type ForgeAnalytics = {
+  videoDuration: ForgeMetric;
   views: ForgeMetric;
   avgViewRate: ForgeMetric;
   likes: ForgeMetric;
   subscriberGain: ForgeMetric;
-  retentionLevel: "high" | "mid" | "low" | "";
+  retentionRate: ForgeMetric;
   postedAt: string;
 };
 
@@ -55,22 +56,14 @@ function metricLabel(value: ForgeMetric, suffix = "") {
 function normalizeAnalytics(value: unknown): ForgeAnalytics {
   const src = (typeof value === "object" && value !== null ? value : {}) as Partial<ForgeAnalytics>;
   return {
+    videoDuration: normalizeMetric((src as { videoDuration?: unknown }).videoDuration),
     views: normalizeMetric(src.views),
     avgViewRate: normalizeMetric(src.avgViewRate),
     likes: normalizeMetric(src.likes),
     subscriberGain: normalizeMetric(src.subscriberGain),
-    retentionLevel: src.retentionLevel === "high" || src.retentionLevel === "mid" || src.retentionLevel === "low"
-      ? src.retentionLevel
-      : "",
+    retentionRate: normalizeMetric((src as { retentionRate?: unknown }).retentionRate),
     postedAt: typeof src.postedAt === "string" ? src.postedAt : "",
   };
-}
-
-function normalizeRetentionLevel(value: string): ForgeAnalytics["retentionLevel"] {
-  if (value === "high" || value === "高い") return "high";
-  if (value === "mid" || value === "普通") return "mid";
-  if (value === "low" || value === "弱い") return "low";
-  return "";
 }
 
 function normalizeScriptSource(value: string): ForgeScriptSource {
@@ -152,48 +145,6 @@ function reviewEntryKey(entry: ForgeReviewEntry) {
   ].join("\u0001");
 }
 
-
-export function buildAnalyticsInsights(analytics: ForgeAnalytics) {
-  const insights: string[] = [];
-  const rules: string[] = [];
-
-  if (analytics.avgViewRate !== null && analytics.avgViewRate < 65) {
-    insights.push("平均視聴率が低め。中盤のテンポ落ちや前置き過多の可能性");
-    rules.push("各順位の1文目を短くし、2文目までに強い情報を出す");
-  }
-
-  if (analytics.retentionLevel === "low") {
-    insights.push("視聴継続が弱い。導入か前半で離脱されている可能性");
-    rules.push("導入説明を削り、1行目から強い対象名と異常値を入れる");
-  }
-
-  if (analytics.views !== null && analytics.likes !== null && analytics.views > 0) {
-    const likeRate = analytics.likes / analytics.views;
-
-    if (likeRate < 0.02) {
-      insights.push("高評価率が低め。感情の振れ幅や納得感が弱い可能性");
-      rules.push("比喩か強めの断定を1項目につき1つ入れる");
-    }
-  }
-
-  if (analytics.subscriberGain !== null && analytics.views !== null && analytics.subscriberGain <= 0 && analytics.views > 0) {
-    insights.push("登録者増が弱い。継続して見たい理由やキャラ立ちが薄い可能性");
-    rules.push("締めで次回も見たくなる予告かシリーズ感を入れる");
-  }
-
-  if (analytics.postedAt) {
-    const date = new Date(analytics.postedAt);
-    if (!Number.isNaN(date.getTime())) {
-      insights.push(`投稿日時メモ: ${date.toLocaleString("ja-JP")} に投稿`);
-    }
-  }
-
-  return {
-    insights,
-    rules: [...new Set(rules)],
-  };
-}
-
 export function buildImprovementMemo(entries: ForgeReviewEntry[]) {
   const recent = [...entries]
     .sort((a, b) => Date.parse(b.savedAt) - Date.parse(a.savedAt))
@@ -206,10 +157,6 @@ export function buildImprovementMemo(entries: ForgeReviewEntry[]) {
     if (entry.score <= 3 && entry.resultMemo.trim()) {
       picked.push(`- NG例メモ: ${entry.resultMemo.trim()}`);
     }
-    const analytics = buildAnalyticsInsights(entry.analytics);
-    for (const rule of analytics.rules) {
-      picked.push(`- 指標改善: ${rule}`);
-    }
   }
 
   return [...new Set(picked)].slice(0, 8).join("\n");
@@ -217,13 +164,6 @@ export function buildImprovementMemo(entries: ForgeReviewEntry[]) {
 
 function entryTitle(entry: ForgeReviewEntry) {
   return entry.topic || entry.script.split(/\r?\n/).find(line => line.trim()) || "無題の台本";
-}
-
-function retentionLabel(value: ForgeAnalytics["retentionLevel"]) {
-  if (value === "high") return "高い";
-  if (value === "low") return "弱い";
-  if (value === "mid") return "普通";
-  return "不明";
 }
 
 export function buildPromptImprovementReport(entries: ForgeReviewEntry[]) {
@@ -246,10 +186,10 @@ export function buildPromptImprovementReport(entries: ForgeReviewEntry[]) {
     .slice(0, 5);
 
   const topLines = topEntries.map(entry => (
-    `- ${entryTitle(entry)} / ${SCRIPT_SOURCE_LABELS[entry.sourceType]}${entry.sourceName ? `:${entry.sourceName}` : ""} / ${topicTagLabel(entry.topicTag) || "ネタ種類未設定"} / 評価${entry.score} / 視聴${metricLabel(entry.analytics.views)} / 平均視聴率${metricLabel(entry.analytics.avgViewRate, "%")} / 登録者増${metricLabel(entry.analytics.subscriberGain)} / 継続${retentionLabel(entry.analytics.retentionLevel)}`
+    `- ${entryTitle(entry)} / ${SCRIPT_SOURCE_LABELS[entry.sourceType]}${entry.sourceName ? `:${entry.sourceName}` : ""} / ${topicTagLabel(entry.topicTag) || "ネタ種類未設定"} / 評価${entry.score} / 動画時間${metricLabel(entry.analytics.videoDuration, "秒")} / 視聴${metricLabel(entry.analytics.views)} / 平均視聴率${metricLabel(entry.analytics.avgViewRate, "%")} / 登録者増${metricLabel(entry.analytics.subscriberGain)} / 視聴継続${metricLabel(entry.analytics.retentionRate, "%")}`
   ));
   const weakLines = weakEntries.map(entry => (
-    `- ${entryTitle(entry)} / ${SCRIPT_SOURCE_LABELS[entry.sourceType]}${entry.sourceName ? `:${entry.sourceName}` : ""} / ${topicTagLabel(entry.topicTag) || "ネタ種類未設定"} / 評価${entry.score} / 視聴${metricLabel(entry.analytics.views)} / 平均視聴率${metricLabel(entry.analytics.avgViewRate, "%")} / 登録者増${metricLabel(entry.analytics.subscriberGain)} / 継続${retentionLabel(entry.analytics.retentionLevel)} / メモ: ${entry.resultMemo || entry.nextRule || "未記入"}`
+    `- ${entryTitle(entry)} / ${SCRIPT_SOURCE_LABELS[entry.sourceType]}${entry.sourceName ? `:${entry.sourceName}` : ""} / ${topicTagLabel(entry.topicTag) || "ネタ種類未設定"} / 評価${entry.score} / 動画時間${metricLabel(entry.analytics.videoDuration, "秒")} / 視聴${metricLabel(entry.analytics.views)} / 平均視聴率${metricLabel(entry.analytics.avgViewRate, "%")} / 登録者増${metricLabel(entry.analytics.subscriberGain)} / 視聴継続${metricLabel(entry.analytics.retentionRate, "%")} / メモ: ${entry.resultMemo || entry.nextRule || "未記入"}`
   ));
 
   return [
@@ -294,11 +234,12 @@ export const REVIEW_CSV_HEADER = [
   "sourceName",
   "ネタ種類",
   "score",
+  "videoDuration",
   "views",
   "avgViewRate",
   "likes",
   "subscriberGain",
-  "retentionLevel",
+  "retentionRate",
   "postedAt",
   "script",
   "resultMemo",
@@ -338,11 +279,12 @@ export function parseReviewCsv(csv: string): ForgeReviewEntry[] {
         resultMemo: cellByHeader(row, indexByHeader, ["resultMemo"]),
         nextRule,
         analytics: normalizeAnalytics({
+          videoDuration: cellByHeader(row, indexByHeader, ["videoDuration", "動画時間", "durationSeconds"]),
           views: cellByHeader(row, indexByHeader, ["views"]),
           avgViewRate: cellByHeader(row, indexByHeader, ["avgViewRate"]),
           likes: cellByHeader(row, indexByHeader, ["likes"]),
           subscriberGain: cellByHeader(row, indexByHeader, ["subscriberGain"]),
-          retentionLevel: normalizeRetentionLevel(cellByHeader(row, indexByHeader, ["retentionLevel"])),
+          retentionRate: cellByHeader(row, indexByHeader, ["retentionRate", "視聴継続", "retentionLevel"]),
           postedAt: cellByHeader(row, indexByHeader, ["postedAt"]),
         }),
       };
@@ -369,11 +311,12 @@ export function buildReviewCsv(entries: ForgeReviewEntry[]) {
     entry.sourceName,
     topicTagLabel(entry.topicTag),
     String(entry.score),
+    metricCsv(entry.analytics.videoDuration),
     metricCsv(entry.analytics.views),
     metricCsv(entry.analytics.avgViewRate),
     metricCsv(entry.analytics.likes),
     metricCsv(entry.analytics.subscriberGain),
-    retentionLabel(entry.analytics.retentionLevel),
+    metricCsv(entry.analytics.retentionRate),
     entry.analytics.postedAt,
     entry.script,
     entry.resultMemo,

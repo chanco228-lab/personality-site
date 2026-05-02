@@ -18,7 +18,6 @@ import {
 } from "@/data/forge/promptConfig";
 import { buildForgePrompt, getDuration, getSeCount } from "@/lib/forge/promptBuilders";
 import {
-  buildAnalyticsInsights,
   buildPromptImprovementReport,
   buildReviewCsv,
   buildReviewCsvTemplate,
@@ -55,6 +54,16 @@ function getEntryTitle(entry: ForgeReviewEntry) {
   return entry.topic || entry.script.split(/\r?\n/).find(line => line.trim()) || "無題の台本";
 }
 
+function buildPostedAt(month: string, day: string, hour: string) {
+  const parts: string[] = [];
+
+  if (month) parts.push(`${month}月`);
+  if (day) parts.push(`${day}日`);
+  if (hour) parts.push(`${hour}時`);
+
+  return parts.join(" ");
+}
+
 export default function ForgePage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
@@ -83,12 +92,15 @@ export default function ForgePage() {
   const [reviewEntries, setReviewEntries] = useState<ForgeReviewEntry[]>([]);
   const [improvementMemo, setImprovementMemo] = useState("");
   const [reviewImportStatus, setReviewImportStatus] = useState("");
+  const [videoDuration, setVideoDuration] = useState("");
   const [views, setViews] = useState("");
   const [avgViewRate, setAvgViewRate] = useState("");
   const [likes, setLikes] = useState("");
   const [subscriberGain, setSubscriberGain] = useState("");
-  const [retentionLevel, setRetentionLevel] = useState<"" | "high" | "mid" | "low">("");
-  const [postedAt, setPostedAt] = useState("");
+  const [retentionRate, setRetentionRate] = useState("");
+  const [postedMonth, setPostedMonth] = useState("");
+  const [postedDay, setPostedDay] = useState("");
+  const [postedHour, setPostedHour] = useState("");
 
   const prompt = useMemo(() => buildForgePrompt({
     mode,
@@ -115,15 +127,14 @@ export default function ForgePage() {
   }), [count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
 
   const reviewAnalytics = useMemo(() => ({
+    videoDuration: parseMetricDraft(videoDuration),
     views: parseMetricDraft(views),
     avgViewRate: parseMetricDraft(avgViewRate),
     likes: parseMetricDraft(likes),
     subscriberGain: parseMetricDraft(subscriberGain),
-    retentionLevel,
-    postedAt,
-  }), [views, avgViewRate, likes, subscriberGain, retentionLevel, postedAt]);
-
-  const analyticsInsights = useMemo(() => buildAnalyticsInsights(reviewAnalytics), [reviewAnalytics]);
+    retentionRate: parseMetricDraft(retentionRate),
+    postedAt: buildPostedAt(postedMonth, postedDay, postedHour),
+  }), [videoDuration, views, avgViewRate, likes, subscriberGain, retentionRate, postedMonth, postedDay, postedHour]);
 
   const topEntries = useMemo(() => (
     [...reviewEntries].sort((a, b) => {
@@ -201,7 +212,7 @@ export default function ForgePage() {
       promptSnapshot: scriptSource === "ai" ? scriptPromptSnapshot : "",
       script: reviewScript.trim(),
       resultMemo: reviewResult.trim(),
-      nextRule: reviewNextRule.trim() || analyticsInsights.rules[0] || "",
+      nextRule: reviewNextRule.trim(),
       analytics: reviewAnalytics,
     };
 
@@ -214,12 +225,15 @@ export default function ForgePage() {
     setReviewScript("");
     setReviewResult("");
     setReviewNextRule("");
+    setVideoDuration("");
     setViews("");
     setAvgViewRate("");
     setLikes("");
     setSubscriberGain("");
-    setRetentionLevel("");
-    setPostedAt("");
+    setRetentionRate("");
+    setPostedMonth("");
+    setPostedDay("");
+    setPostedHour("");
   }, [
     topicTag,
     scriptSource,
@@ -231,7 +245,6 @@ export default function ForgePage() {
     reviewResult,
     reviewNextRule,
     reviewEntries,
-    analyticsInsights.rules,
     reviewAnalytics,
   ]);
 
@@ -266,7 +279,7 @@ export default function ForgePage() {
       "【台本評価メモ】",
       "",
       "保存日時:",
-      "投稿日時:",
+      "投稿日時(月/日/時):",
       "タイトル:",
       "作成元: AI作 / 自作 / 他人作 / 不明",
       "作者・参考元:",
@@ -274,11 +287,12 @@ export default function ForgePage() {
       "評価点:",
       "",
       "【YouTube指標】",
+      "動画時間(秒):",
       "視聴回数:",
       "平均視聴率:",
       "高評価数:",
       "チャンネル登録者増数:",
-      "視聴継続:",
+      "視聴継続(%):",
       "",
       "【台本】",
       "",
@@ -545,49 +559,27 @@ export default function ForgePage() {
                     <span style={S.unknownPill}>空欄 = 不明</span>
                   </div>
                   <div style={S.analyticsGrid}>
+                    <MetricField label="動画時間 (秒)" value={videoDuration} onChange={setVideoDuration} placeholder="例: 29" />
                     <MetricField label="視聴回数" value={views} onChange={setViews} />
                     <MetricField label="平均視聴率 (%)" value={avgViewRate} onChange={setAvgViewRate} step="0.1" />
                     <MetricField label="高評価数" value={likes} onChange={setLikes} />
                     <MetricField label="登録者増数" value={subscriberGain} onChange={setSubscriberGain} />
+                    <MetricField label="視聴継続 (%)" value={retentionRate} onChange={setRetentionRate} step="0.1" />
                     <label style={S.metricField}>
-                      <span style={S.metricLabel}>視聴継続</span>
+                      <span style={S.metricLabel}>投稿月</span>
                       <select
-                        value={retentionLevel}
-                        onChange={e => setRetentionLevel(e.target.value as "" | "high" | "mid" | "low")}
+                        value={postedMonth}
+                        onChange={e => setPostedMonth(e.target.value)}
                         style={S.metricInput}
                       >
                         <option value="">不明</option>
-                        <option value="high">高い</option>
-                        <option value="mid">普通</option>
-                        <option value="low">弱い</option>
+                        {Array.from({ length: 12 }, (_, i) => String(i + 1)).map(month => (
+                          <option key={month} value={month}>{month}月</option>
+                        ))}
                       </select>
                     </label>
-                    <label style={S.metricField}>
-                      <span style={S.metricLabel}>投稿日時</span>
-                      <input
-                        type="datetime-local"
-                        value={postedAt}
-                        onChange={e => setPostedAt(e.target.value)}
-                        style={S.metricInput}
-                      />
-                    </label>
-                  </div>
-                  <div style={S.analyticsBox}>
-                    <p style={{ margin: "0 0 8px", fontWeight: 700, color: C.hi, fontSize: 13 }}>自動診断</p>
-                    {analyticsInsights.insights.length === 0 ? (
-                      <p style={{ margin: 0, fontSize: 12, color: C.dim }}>
-                        不明データは無視します。わかる数字だけ入れると改善候補を出します。
-                      </p>
-                    ) : (
-                      analyticsInsights.insights.map(item => (
-                        <div key={item} style={S.tipRow}>{item}</div>
-                      ))
-                    )}
-                    {analyticsInsights.rules.length > 0 && (
-                      <div style={{ marginTop: 8, fontSize: 12, color: C.acc, lineHeight: 1.55 }}>
-                        次回ルール候補: {analyticsInsights.rules[0]}
-                      </div>
-                    )}
+                    <MetricField label="投稿日" value={postedDay} onChange={setPostedDay} placeholder="例: 12" />
+                    <MetricField label="投稿時間" value={postedHour} onChange={setPostedHour} placeholder="例: 21" />
                   </div>
                 </div>
 
@@ -700,11 +692,11 @@ export default function ForgePage() {
                           </span>
                         </div>
                         <p style={{ margin: "6px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.5 }}>
-                          再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 高評価 {metricText(entry.analytics.likes)} / 登録者増 {metricText(entry.analytics.subscriberGain)} / 継続 {entry.analytics.retentionLevel === "high" ? "高い" : entry.analytics.retentionLevel === "mid" ? "普通" : entry.analytics.retentionLevel === "low" ? "弱い" : "不明"}
+                          動画時間 {metricText(entry.analytics.videoDuration, "秒")} / 再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 高評価 {metricText(entry.analytics.likes)} / 登録者増 {metricText(entry.analytics.subscriberGain)} / 視聴継続 {metricText(entry.analytics.retentionRate, "%")}
                         </p>
                         {entry.analytics.postedAt && (
                           <p style={{ margin: "4px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.5 }}>
-                            投稿日時 {new Date(entry.analytics.postedAt).toLocaleString("ja-JP")}
+                            投稿日時 {entry.analytics.postedAt}
                           </p>
                         )}
                         <p style={{ margin: "6px 0 0", fontSize: 12, color: C.txt, lineHeight: 1.55 }}>
@@ -894,7 +886,7 @@ function ArchiveItem({
         <span style={badgeStyle}>{badgeText}</span>
       </div>
       <p style={{ margin: "8px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.55 }}>
-        {getSourceLabel(entry.sourceType)} / {getTopicTagLabel(entry.topicTag)} / 再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 高評価 {metricText(entry.analytics.likes)} / 登録者増 {metricText(entry.analytics.subscriberGain)}
+        {getSourceLabel(entry.sourceType)} / {getTopicTagLabel(entry.topicTag)} / 動画時間 {metricText(entry.analytics.videoDuration, "秒")} / 再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 高評価 {metricText(entry.analytics.likes)} / 登録者増 {metricText(entry.analytics.subscriberGain)} / 視聴継続 {metricText(entry.analytics.retentionRate, "%")}
       </p>
       <p style={{ margin: "6px 0 0", fontSize: 12, color: C.txt, lineHeight: 1.55 }}>
         {entry.nextRule || entry.resultMemo || "メモなし"}

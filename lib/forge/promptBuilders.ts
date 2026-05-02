@@ -77,6 +77,7 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
       "- 作成元（AI作 / 自作 / 他人作 / 不明）",
       "- ネタ種類タグ",
       "- 台本本文",
+      "- 動画時間",
       "- YouTube指標（不明なものは空欄で保存）",
       "- 評価メモ",
       "- 基礎プロンプトへ反映する改善仮説",
