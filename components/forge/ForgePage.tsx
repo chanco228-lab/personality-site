@@ -12,7 +12,6 @@ import {
 
 import {
   MODE_TABS,
-  SCRIPT_REVIEW_RUBRIC,
   TOPIC_TAGS,
   type Mode,
   type TopicTagId,
@@ -25,13 +24,35 @@ import {
   buildReviewCsvTemplate,
   mergeReviewEntries,
   parseReviewCsv,
+  SCRIPT_SOURCE_LABELS,
   type ForgeReviewEntry,
+  type ForgeScriptSource,
 } from "@/lib/forge/reviewCycle";
 
 const PASSWORD = "garikimbs";
 
 function getTopicTagLabel(value: TopicTagId | "") {
   return TOPIC_TAGS.find(tag => tag.id === value)?.label || "未設定";
+}
+
+function parseMetricDraft(value: string) {
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const parsed = Number(normalized.replace(/,/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function metricText(value: number | null, suffix = "") {
+  return value === null ? "不明" : `${value}${suffix}`;
+}
+
+function getSourceLabel(value: ForgeScriptSource) {
+  return SCRIPT_SOURCE_LABELS[value] || "不明";
+}
+
+function getEntryTitle(entry: ForgeReviewEntry) {
+  return entry.topic || entry.script.split(/\r?\n/).find(line => line.trim()) || "無題の台本";
 }
 
 export default function ForgePage() {
@@ -52,6 +73,9 @@ export default function ForgePage() {
   const [copied, setCopied] = useState(false);
 
   const [reviewScript, setReviewScript] = useState("");
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [scriptSource, setScriptSource] = useState<ForgeScriptSource>("ai");
+  const [sourceName, setSourceName] = useState("");
   const [reviewResult, setReviewResult] = useState("");
   const [reviewScore, setReviewScore] = useState(3);
   const [reviewNextRule, setReviewNextRule] = useState("");
@@ -59,11 +83,11 @@ export default function ForgePage() {
   const [reviewEntries, setReviewEntries] = useState<ForgeReviewEntry[]>([]);
   const [improvementMemo, setImprovementMemo] = useState("");
   const [reviewImportStatus, setReviewImportStatus] = useState("");
-  const [views, setViews] = useState(0);
-  const [avgViewRate, setAvgViewRate] = useState(0);
-  const [likes, setLikes] = useState(0);
-  const [subscriberGain, setSubscriberGain] = useState(0);
-  const [retentionLevel, setRetentionLevel] = useState<"high" | "mid" | "low">("mid");
+  const [views, setViews] = useState("");
+  const [avgViewRate, setAvgViewRate] = useState("");
+  const [likes, setLikes] = useState("");
+  const [subscriberGain, setSubscriberGain] = useState("");
+  const [retentionLevel, setRetentionLevel] = useState<"" | "high" | "mid" | "low">("");
   const [postedAt, setPostedAt] = useState("");
 
   const prompt = useMemo(() => buildForgePrompt({
@@ -90,20 +114,22 @@ export default function ForgePage() {
     ideaText,
   }), [count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
 
-  const analyticsInsights = useMemo(() => buildAnalyticsInsights({
-    views,
-    avgViewRate,
-    likes,
-    subscriberGain,
+  const reviewAnalytics = useMemo(() => ({
+    views: parseMetricDraft(views),
+    avgViewRate: parseMetricDraft(avgViewRate),
+    likes: parseMetricDraft(likes),
+    subscriberGain: parseMetricDraft(subscriberGain),
     retentionLevel,
     postedAt,
   }), [views, avgViewRate, likes, subscriberGain, retentionLevel, postedAt]);
 
+  const analyticsInsights = useMemo(() => buildAnalyticsInsights(reviewAnalytics), [reviewAnalytics]);
+
   const topEntries = useMemo(() => (
     [...reviewEntries].sort((a, b) => {
-      const viewDiff = b.analytics.views - a.analytics.views;
+      const viewDiff = (b.analytics.views ?? -1) - (a.analytics.views ?? -1);
       if (viewDiff !== 0) return viewDiff;
-      return b.analytics.avgViewRate - a.analytics.avgViewRate;
+      return (b.analytics.avgViewRate ?? -1) - (a.analytics.avgViewRate ?? -1);
     }).slice(0, 5)
   ), [reviewEntries]);
 
@@ -111,7 +137,7 @@ export default function ForgePage() {
     [...reviewEntries].sort((a, b) => {
       const scoreDiff = a.score - b.score;
       if (scoreDiff !== 0) return scoreDiff;
-      return a.analytics.avgViewRate - b.analytics.avgViewRate;
+      return (a.analytics.avgViewRate ?? 101) - (b.analytics.avgViewRate ?? 101);
     }).slice(0, 5)
   ), [reviewEntries]);
 
@@ -168,31 +194,37 @@ export default function ForgePage() {
       id: crypto.randomUUID(),
       savedAt: new Date().toISOString(),
       topicTag,
-      topic: topic.trim(),
+      sourceType: scriptSource,
+      sourceName: sourceName.trim(),
+      topic: reviewTitle.trim(),
       score: reviewScore,
-      promptSnapshot: scriptPromptSnapshot,
+      promptSnapshot: scriptSource === "ai" ? scriptPromptSnapshot : "",
       script: reviewScript.trim(),
       resultMemo: reviewResult.trim(),
       nextRule: reviewNextRule.trim() || analyticsInsights.rules[0] || "",
-      analytics: {
-        views,
-        avgViewRate,
-        likes,
-        subscriberGain,
-        retentionLevel,
-        postedAt,
-      },
+      analytics: reviewAnalytics,
     };
 
     const nextEntries = mergeReviewEntries([entry, ...reviewEntries]);
     setReviewEntries(nextEntries);
     setImprovementMemo(buildPromptImprovementReport(nextEntries));
     setReviewImportStatus(`画面内の評価DBは ${nextEntries.length} 件です。CSVで書き出すと台帳に反映できます。`);
+    setReviewTitle("");
+    setSourceName("");
+    setReviewScript("");
     setReviewResult("");
     setReviewNextRule("");
+    setViews("");
+    setAvgViewRate("");
+    setLikes("");
+    setSubscriberGain("");
+    setRetentionLevel("");
+    setPostedAt("");
   }, [
     topicTag,
-    topic,
+    scriptSource,
+    sourceName,
+    reviewTitle,
     scriptPromptSnapshot,
     reviewScore,
     reviewScript,
@@ -200,12 +232,7 @@ export default function ForgePage() {
     reviewNextRule,
     reviewEntries,
     analyticsInsights.rules,
-    views,
-    avgViewRate,
-    likes,
-    subscriberGain,
-    retentionLevel,
-    postedAt,
+    reviewAnalytics,
   ]);
 
   const exportReviewCsv = useCallback(() => {
@@ -240,8 +267,10 @@ export default function ForgePage() {
       "",
       "保存日時:",
       "投稿日時:",
+      "タイトル:",
+      "作成元: AI作 / 自作 / 他人作 / 不明",
+      "作者・参考元:",
       "ネタ種類:",
-      "お題:",
       "評価点:",
       "",
       "【YouTube指標】",
@@ -408,7 +437,7 @@ export default function ForgePage() {
                   ブラウザ内では作業用に保持するだけで、正式な保存は `CSV / TXT` の手動ダウンロード前提です。蓄積データは基礎プロンプトの改善にだけ使い、台本生成時には混ぜません。
                 </p>
                 <div style={S.tipBox}>
-                  <div style={S.tipRow}>保存単位: `台本1本 = ネタ種類 + 台本本文 + 指標 + メモ + 改善仮説 + その時点の台本生成プロンプト`</div>
+                  <div style={S.tipRow}>保存単位: `台本1本 = タイトル + 作成元 + ネタ種類 + 台本本文 + 指標 + メモ + 改善仮説`</div>
                   <div style={S.tipRow}>用途: 「どの台本が伸びたか」「どの台本が駄作か」を比較し、基礎プロンプトの改訂材料にする</div>
                   <div style={S.tipRow}>正式なローカル保存: `forge-review-log.csv` や `prompt-improvement-report.txt` を自分でダウンロードして管理</div>
                   <div style={S.tipRow}>この画面の一覧は再読み込みや機種変更で消える前提。残したい情報は必ずファイルに書き出す</div>
@@ -456,113 +485,152 @@ export default function ForgePage() {
               </Block>
 
               <Block n="3" t="台本 + YouTubeアナリティクス評価">
-                <p style={{ ...S.meta, marginTop: 0 }}>
-                  重要指標を紐づけて保存します。視聴回数・平均視聴率・高評価数・登録者増数・視聴継続・投稿日時を台本とセットで残します。
-                </p>
-                <div style={S.tipBox}>
-                  {SCRIPT_REVIEW_RUBRIC.map(item => (
-                    <div key={item} style={S.tipRow}>{item}</div>
-                  ))}
+                <div style={S.reviewHero}>
+                  <p style={S.reviewHeroTitle}>1本ずつ、迷わず記録</p>
+                  <p style={S.reviewHeroText}>タイトルは評価タブ専用で保存します。数値は空欄なら「不明」として扱うので、台本だけ先に入れてもOKです。</p>
                 </div>
-                <div style={{ margin: "10px 0" }}>
-                  <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, marginBottom: 6 }}>ネタ種類（Excelタグ）</div>
+
+                <div style={S.reviewStep}>
+                  <div style={S.reviewStepHead}>
+                    <span style={S.reviewStepNo}>1</span>
+                    <span style={S.reviewStepTitle}>作品</span>
+                  </div>
+                  <input
+                    value={reviewTitle}
+                    onChange={e => setReviewTitle(e.target.value)}
+                    placeholder="タイトル。例：攻撃が当たりづらいキャラ4選"
+                    style={{ ...S.metricInput, fontSize: 15, fontWeight: 700 }}
+                  />
+                  <div style={S.sourceGrid}>
+                    {(Object.entries(SCRIPT_SOURCE_LABELS) as Array<[ForgeScriptSource, string]>).map(([id, label]) => (
+                      <button
+                        key={id}
+                        onClick={() => setScriptSource(id)}
+                        style={scriptSource === id ? S.sourceCardOn : S.sourceCard}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    value={sourceName}
+                    onChange={e => setSourceName(e.target.value)}
+                    placeholder={scriptSource === "other" ? "作者・チャンネル名・参考元（任意）" : "メモ。例：GPT-5 / 自分 / 参考動画名（任意）"}
+                    style={{ ...S.metricInput, marginTop: 10 }}
+                  />
+                </div>
+
+                <div style={S.reviewStep}>
+                  <div style={S.reviewStepHead}>
+                    <span style={S.reviewStepNo}>2</span>
+                    <span style={S.reviewStepTitle}>分類</span>
+                  </div>
                   <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                    <button
-                      onClick={() => setTopicTag("")}
-                      style={topicTag === "" ? S.chipOn : S.chip}
-                    >
+                    <button onClick={() => setTopicTag("")} style={topicTag === "" ? S.chipOn : S.chip}>
                       未設定
                     </button>
                     {TOPIC_TAGS.map(tag => (
-                      <button
-                        key={tag.id}
-                        onClick={() => setTopicTag(tag.id)}
-                        style={topicTag === tag.id ? S.chipOn : S.chip}
-                      >
+                      <button key={tag.id} onClick={() => setTopicTag(tag.id)} style={topicTag === tag.id ? S.chipOn : S.chip}>
                         {tag.label}
                       </button>
                     ))}
                   </div>
-                  <p style={S.meta}>ここは評価CSVにだけ保存します。台本生成プロンプトには混ぜず、後から「どのネタ種類が伸びたか」を見るためのタグです。</p>
+                  <p style={S.meta}>ネタ種類はExcelで比較するためのタグです。台本生成プロンプトには混ぜません。</p>
                 </div>
-                <div style={S.analyticsGrid}>
-                  <MetricField label="視聴回数" value={views} onChange={setViews} />
-                  <MetricField label="平均視聴率 (%)" value={avgViewRate} onChange={setAvgViewRate} step="0.1" />
-                  <MetricField label="高評価数" value={likes} onChange={setLikes} />
-                  <MetricField label="登録者増数" value={subscriberGain} onChange={setSubscriberGain} />
-                  <label style={S.metricField}>
-                    <span style={S.metricLabel}>視聴継続</span>
-                    <select
-                      value={retentionLevel}
-                      onChange={e => setRetentionLevel(e.target.value as "high" | "mid" | "low")}
-                      style={S.metricInput}
-                    >
-                      <option value="high">高い</option>
-                      <option value="mid">普通</option>
-                      <option value="low">弱い</option>
+
+                <div style={S.reviewStep}>
+                  <div style={S.reviewStepHead}>
+                    <span style={S.reviewStepNo}>3</span>
+                    <span style={S.reviewStepTitle}>数字</span>
+                    <span style={S.unknownPill}>空欄 = 不明</span>
+                  </div>
+                  <div style={S.analyticsGrid}>
+                    <MetricField label="視聴回数" value={views} onChange={setViews} />
+                    <MetricField label="平均視聴率 (%)" value={avgViewRate} onChange={setAvgViewRate} step="0.1" />
+                    <MetricField label="高評価数" value={likes} onChange={setLikes} />
+                    <MetricField label="登録者増数" value={subscriberGain} onChange={setSubscriberGain} />
+                    <label style={S.metricField}>
+                      <span style={S.metricLabel}>視聴継続</span>
+                      <select
+                        value={retentionLevel}
+                        onChange={e => setRetentionLevel(e.target.value as "" | "high" | "mid" | "low")}
+                        style={S.metricInput}
+                      >
+                        <option value="">不明</option>
+                        <option value="high">高い</option>
+                        <option value="mid">普通</option>
+                        <option value="low">弱い</option>
+                      </select>
+                    </label>
+                    <label style={S.metricField}>
+                      <span style={S.metricLabel}>投稿日時</span>
+                      <input
+                        type="datetime-local"
+                        value={postedAt}
+                        onChange={e => setPostedAt(e.target.value)}
+                        style={S.metricInput}
+                      />
+                    </label>
+                  </div>
+                  <div style={S.analyticsBox}>
+                    <p style={{ margin: "0 0 8px", fontWeight: 700, color: C.hi, fontSize: 13 }}>自動診断</p>
+                    {analyticsInsights.insights.length === 0 ? (
+                      <p style={{ margin: 0, fontSize: 12, color: C.dim }}>
+                        不明データは無視します。わかる数字だけ入れると改善候補を出します。
+                      </p>
+                    ) : (
+                      analyticsInsights.insights.map(item => (
+                        <div key={item} style={S.tipRow}>{item}</div>
+                      ))
+                    )}
+                    {analyticsInsights.rules.length > 0 && (
+                      <div style={{ marginTop: 8, fontSize: 12, color: C.acc, lineHeight: 1.55 }}>
+                        次回ルール候補: {analyticsInsights.rules[0]}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div style={S.reviewStep}>
+                  <div style={S.reviewStepHead}>
+                    <span style={S.reviewStepNo}>4</span>
+                    <span style={S.reviewStepTitle}>台本と学び</span>
+                  </div>
+                  <textarea
+                    value={reviewScript}
+                    onChange={e => setReviewScript(e.target.value)}
+                    placeholder="AI作・自作・他人作、どの台本でもここに貼り付け"
+                    style={S.ta}
+                    rows={6}
+                  />
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: C.hi }}>評価</span>
+                    <select value={reviewScore} onChange={e => setReviewScore(Number(e.target.value))} style={S.selCompact}>
+                      {[5, 4, 3, 2, 1].map(score => (
+                        <option key={score} value={score}>{score} / 5</option>
+                      ))}
                     </select>
-                  </label>
-                  <label style={S.metricField}>
-                    <span style={S.metricLabel}>投稿日時</span>
-                    <input
-                      type="datetime-local"
-                      value={postedAt}
-                      onChange={e => setPostedAt(e.target.value)}
-                      style={S.metricInput}
-                    />
-                  </label>
+                  </div>
+                  <textarea
+                    value={reviewResult}
+                    onChange={e => setReviewResult(e.target.value)}
+                    placeholder="結果メモ。例：初速弱い / 維持率は高い / 締めは刺さった / 冒頭で離脱"
+                    style={{ ...S.ta, marginTop: 10 }}
+                    rows={4}
+                  />
+                  <textarea
+                    value={reviewNextRule}
+                    onChange={e => setReviewNextRule(e.target.value)}
+                    placeholder="基礎プロンプトへ反映したい改善仮説。例：冒頭2文で結論を先出しするルールを強める"
+                    style={{ ...S.ta, marginTop: 10 }}
+                    rows={3}
+                  />
                 </div>
-                <div style={S.analyticsBox}>
-                  <p style={{ margin: "0 0 8px", fontWeight: 700, color: C.hi, fontSize: 13 }}>自動診断</p>
-                  {analyticsInsights.insights.length === 0 ? (
-                    <p style={{ margin: 0, fontSize: 12, color: C.dim }}>
-                      数値を入れると、次回の改善ポイント候補をここに出します。
-                    </p>
-                  ) : (
-                    analyticsInsights.insights.map(item => (
-                      <div key={item} style={S.tipRow}>{item}</div>
-                    ))
-                  )}
-                  {analyticsInsights.rules.length > 0 && (
-                    <div style={{ marginTop: 8, fontSize: 12, color: C.acc, lineHeight: 1.55 }}>
-                      次回ルール候補: {analyticsInsights.rules[0]}
-                    </div>
-                  )}
-                </div>
-                <textarea
-                  value={reviewScript}
-                  onChange={e => setReviewScript(e.target.value)}
-                  placeholder="評価したい完成台本をここに貼り付け"
-                  style={S.ta}
-                  rows={6}
-                />
-                <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 10 }}>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: C.hi }}>評価</span>
-                  <select value={reviewScore} onChange={e => setReviewScore(Number(e.target.value))} style={S.selCompact}>
-                    {[5, 4, 3, 2, 1].map(score => (
-                      <option key={score} value={score}>{score} / 5</option>
-                    ))}
-                  </select>
-                </div>
-                <textarea
-                  value={reviewResult}
-                  onChange={e => setReviewResult(e.target.value)}
-                  placeholder="結果メモ。例：初速弱い / 維持率は高い / 締めは刺さった / 冒頭で離脱"
-                  style={{ ...S.ta, marginTop: 10 }}
-                  rows={4}
-                />
-                <textarea
-                  value={reviewNextRule}
-                  onChange={e => setReviewNextRule(e.target.value)}
-                  placeholder="基礎プロンプトへ反映したい改善仮説。例：冒頭2文で結論を先出しするルールを強める"
-                  style={{ ...S.ta, marginTop: 10 }}
-                  rows={3}
-                />
                 <div style={S.actionRow}>
                   <button
                     onClick={saveReview}
-                    disabled={!reviewScript.trim()}
-                    style={!reviewScript.trim() ? S.dlBtnDisabled : S.dlBtn}
+                    disabled={!reviewScript.trim() && !reviewTitle.trim()}
+                    style={!reviewScript.trim() && !reviewTitle.trim() ? S.dlBtnDisabled : S.dlBtn}
                   >
                     一覧に追加して改善レポート更新
                   </button>
@@ -619,15 +687,20 @@ export default function ForgePage() {
                     reviewEntries.slice(0, 5).map(entry => (
                       <div key={entry.id} style={S.reviewItem}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: C.acc }}>
-                            {getTopicTagLabel(entry.topicTag)} / {entry.score}点
-                          </span>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={{ margin: 0, fontSize: 13, fontWeight: 800, color: C.hi, lineHeight: 1.45 }}>
+                              {getEntryTitle(entry)}
+                            </p>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: C.acc }}>
+                              {getSourceLabel(entry.sourceType)}{entry.sourceName ? `:${entry.sourceName}` : ""} / {getTopicTagLabel(entry.topicTag)} / {entry.score}点
+                            </span>
+                          </div>
                           <span style={{ fontSize: 10, color: C.dim }}>
                             {new Date(entry.savedAt).toLocaleString("ja-JP")}
                           </span>
                         </div>
                         <p style={{ margin: "6px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.5 }}>
-                          再生 {entry.analytics.views} / 視聴率 {entry.analytics.avgViewRate}% / 高評価 {entry.analytics.likes} / 登録者増 {entry.analytics.subscriberGain} / 継続 {entry.analytics.retentionLevel === "high" ? "高い" : entry.analytics.retentionLevel === "mid" ? "普通" : "弱い"}
+                          再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 高評価 {metricText(entry.analytics.likes)} / 登録者増 {metricText(entry.analytics.subscriberGain)} / 継続 {entry.analytics.retentionLevel === "high" ? "高い" : entry.analytics.retentionLevel === "mid" ? "普通" : entry.analytics.retentionLevel === "low" ? "弱い" : "不明"}
                         </p>
                         {entry.analytics.postedAt && (
                           <p style={{ margin: "4px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.5 }}>
@@ -774,11 +847,13 @@ function MetricField({
   value,
   onChange,
   step = "1",
+  placeholder = "不明",
 }: {
   label: string;
-  value: number;
-  onChange: (value: number) => void;
+  value: string;
+  onChange: (value: string) => void;
   step?: string;
+  placeholder?: string;
 }) {
   return (
     <label style={S.metricField}>
@@ -787,8 +862,9 @@ function MetricField({
         type="number"
         min="0"
         step={step}
-        value={Number.isFinite(value) ? value : 0}
-        onChange={e => onChange(Number(e.target.value) || 0)}
+        value={value}
+        placeholder={placeholder}
+        onChange={e => onChange(e.target.value)}
         style={S.metricInput}
       />
     </label>
@@ -802,7 +878,7 @@ function ArchiveItem({
   entry: ForgeReviewEntry;
   tone: "good" | "weak";
 }) {
-  const title = entry.topic || entry.script.split(/\r?\n/).find(line => line.trim()) || "無題の台本";
+  const title = getEntryTitle(entry);
   const badgeText = tone === "good" ? "伸びた候補" : "改善優先";
   const badgeStyle = tone === "good" ? S.goodBadge : S.weakBadge;
 
@@ -818,7 +894,7 @@ function ArchiveItem({
         <span style={badgeStyle}>{badgeText}</span>
       </div>
       <p style={{ margin: "8px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.55 }}>
-        {getTopicTagLabel(entry.topicTag)} / 再生 {entry.analytics.views} / 視聴率 {entry.analytics.avgViewRate}% / 高評価 {entry.analytics.likes} / 登録者増 {entry.analytics.subscriberGain}
+        {getSourceLabel(entry.sourceType)} / {getTopicTagLabel(entry.topicTag)} / 再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 高評価 {metricText(entry.analytics.likes)} / 登録者増 {metricText(entry.analytics.subscriberGain)}
       </p>
       <p style={{ margin: "6px 0 0", fontSize: 12, color: C.txt, lineHeight: 1.55 }}>
         {entry.nextRule || entry.resultMemo || "メモなし"}
@@ -950,6 +1026,93 @@ const S: Record<string, CSSProperties> = {
   csvInfo: {
     padding: "14px 16px", background: C.sf, border: `1.5px solid ${C.bdr}`,
     borderRadius: 12, marginTop: 4,
+  },
+  reviewHero: {
+    padding: "16px 18px",
+    background: "linear-gradient(135deg, #ffffff 0%, #f3f7ff 100%)",
+    border: `1.5px solid ${C.bdr}`,
+    borderRadius: 18,
+    marginBottom: 12,
+    boxShadow: "0 8px 24px rgba(20,32,70,0.05)",
+  },
+  reviewHeroTitle: {
+    margin: "0 0 5px",
+    fontSize: 18,
+    fontWeight: 900,
+    color: C.hi,
+    letterSpacing: "-0.02em",
+  },
+  reviewHeroText: {
+    margin: 0,
+    fontSize: 12,
+    color: C.dim,
+    lineHeight: 1.65,
+  },
+  reviewStep: {
+    padding: "14px 15px",
+    background: C.sf,
+    border: `1.5px solid ${C.bdr}`,
+    borderRadius: 16,
+    marginTop: 12,
+  },
+  reviewStepHead: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 10,
+  },
+  reviewStepNo: {
+    width: 22,
+    height: 22,
+    borderRadius: "50%",
+    background: C.hi,
+    color: "#fff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 11,
+    fontWeight: 900,
+  },
+  reviewStepTitle: {
+    fontSize: 13,
+    fontWeight: 900,
+    color: C.hi,
+  },
+  unknownPill: {
+    marginLeft: "auto",
+    padding: "3px 8px",
+    borderRadius: 999,
+    background: "#eef2f7",
+    color: C.dim,
+    fontSize: 10,
+    fontWeight: 800,
+  },
+  sourceGrid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+    gap: 8,
+    marginTop: 10,
+  },
+  sourceCard: {
+    padding: "10px 8px",
+    background: "#f7f8fb",
+    border: `1.5px solid ${C.bdr}`,
+    borderRadius: 12,
+    color: C.dim,
+    fontSize: 12,
+    fontWeight: 800,
+    cursor: "pointer",
+  },
+  sourceCardOn: {
+    padding: "10px 8px",
+    background: C.hi,
+    border: `1.5px solid ${C.hi}`,
+    borderRadius: 12,
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: 900,
+    cursor: "pointer",
+    boxShadow: "0 8px 18px rgba(26,26,46,0.15)",
   },
   tipBox: {
     padding: "10px 12px", background: "#fff8f2", border: "1px solid rgba(241, 140, 74, 0.18)",
