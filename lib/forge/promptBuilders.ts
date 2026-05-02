@@ -1,18 +1,12 @@
 import {
-  COMMON_FOOTER,
   CATEGORIES,
   CSV_PROMPT,
-  ITEM_WRITING_RULES,
+  IDEA_DEEP_DIVE_PROMPT,
   SE_CATEGORY_HINTS,
   SE_PROMPT,
-  STRUCTURE_RULES,
-  SYSTEM_PROMPT_HEADER,
-  TEMPO_EXAMPLES,
-  TITLE_PATTERNS,
-  TONE_RULES,
+  SCRIPT_PROMPT_V5,
   type CategoryId,
   type Mode,
-  WORD_CHOICE_RULES,
 } from "@/data/forge/promptConfig";
 
 export function getDuration(n: number) {
@@ -47,6 +41,7 @@ type BuildForgePromptInput = {
   seText: string;
   csvText: string;
   csvLabel: string;
+  ideaText: string;
 };
 
 export function buildForgePrompt(input: BuildForgePromptInput) {
@@ -60,7 +55,21 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
     seText,
     csvText,
     csvLabel,
+    ideaText,
   } = input;
+
+  if (mode === "idea") {
+    const category = CATEGORIES.find(c => c.id === cat);
+    const label = category?.label || "未選択";
+    const categorySub = category?.sub || "未選択";
+
+    return [
+      IDEA_DEEP_DIVE_PROMPT,
+      `\n---\n\n【ネタの原石】\n${ideaText || "（未入力）"}`,
+      `\n【想定カテゴリ】${label}`,
+      `\n【カテゴリ補足】${categorySub}`,
+    ].join("\n");
+  }
 
   if (mode === "csv") {
     return CSV_PROMPT.replace(/ラベル/g, csvLabel) + `\n\n# ラベル：${csvLabel}\n\n# 台本\n${csvText}`;
@@ -75,6 +84,7 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
       "重要: 蓄積データは実際の台本生成プロンプトには混ぜない。多すぎる過去データで生成品質を落とさないため、改善は基礎プロンプトの改訂時だけに使う。",
       "",
       "このタブでは次の情報をまとめて保存する:",
+      "- ネタ種類タグ",
       "- 台本本文",
       "- 視聴回数",
       "- 平均視聴率",
@@ -97,28 +107,14 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
     ].join("\n");
   }
 
-  const tone = cat ? TONE_RULES[cat] : "";
-  const category = CATEGORIES.find(c => c.id === cat);
-  const label = category?.label || "未選択";
-  const categorySub = category?.sub || "未選択";
-  const suppBlock = supp.trim() ? `\n【補足説明・追加指示】\n${supp}` : "";
+  const supplementBlock = supp.trim()
+    ? `【補足説明・追加指示】\n${supp.trim()}`
+    : "【補足説明・追加指示】\n（未入力）";
 
-  return [
-    SYSTEM_PROMPT_HEADER,
-    STRUCTURE_RULES,
-    `- 読み上げ尺：${getDuration(count)}`,
-    `- 項目数：${count}選`,
-    ITEM_WRITING_RULES,
-    TITLE_PATTERNS,
-    "\n# 文体ルール（最重要）",
-    tone,
-    WORD_CHOICE_RULES,
-    TEMPO_EXAMPLES,
-    COMMON_FOOTER,
-    `\n---\n\n【お題】\n${topic || "（未入力）"}`,
-    `\n【情報素材】\n${mats || "（未入力）"}`,
-    `\n【カテゴリ】${label}`,
-    `\n【カテゴリ補足】${categorySub}`,
-    suppBlock,
-  ].join("\n");
+  return SCRIPT_PROMPT_V5
+    .replaceAll("{{count}}", String(count))
+    .replaceAll("{{duration}}", getDuration(count))
+    .replaceAll("{{topic}}", topic || "（未入力）")
+    .replaceAll("{{materials}}", mats || "（未入力）")
+    .replaceAll("{{supplementBlock}}", supplementBlock);
 }

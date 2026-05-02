@@ -1,4 +1,4 @@
-import type { CategoryId } from "@/data/forge/promptConfig";
+import { TOPIC_TAGS, type TopicTagId } from "@/data/forge/promptConfig";
 
 export type ForgeAnalytics = {
   views: number;
@@ -12,7 +12,7 @@ export type ForgeAnalytics = {
 export type ForgeReviewEntry = {
   id: string;
   savedAt: string;
-  category: CategoryId | "";
+  topicTag: TopicTagId | "";
   topic: string;
   score: number;
   promptSnapshot: string;
@@ -42,9 +42,15 @@ function normalizeRetentionLevel(value: string): ForgeAnalytics["retentionLevel"
   return "mid";
 }
 
-function normalizeCategory(value: string): CategoryId | "" {
-  if (value === "hype" || value === "serious" || value === "data") return value;
+function normalizeTopicTag(value: string): TopicTagId | "" {
+  const normalized = value.trim();
+  const matched = TOPIC_TAGS.find(tag => tag.id === normalized || tag.label === normalized);
+  if (matched) return matched.id;
   return "";
+}
+
+function topicTagLabel(value: TopicTagId | "") {
+  return TOPIC_TAGS.find(tag => tag.id === value)?.label || "";
 }
 
 function parseCsvRows(csv: string) {
@@ -200,10 +206,10 @@ export function buildPromptImprovementReport(entries: ForgeReviewEntry[]) {
     .slice(0, 5);
 
   const topLines = topEntries.map(entry => (
-    `- ${entryTitle(entry)} / 評価${entry.score} / 視聴${entry.analytics.views} / 平均視聴率${entry.analytics.avgViewRate}% / 登録者増${entry.analytics.subscriberGain} / 継続${retentionLabel(entry.analytics.retentionLevel)}`
+    `- ${entryTitle(entry)} / ${topicTagLabel(entry.topicTag) || "ネタ種類未設定"} / 評価${entry.score} / 視聴${entry.analytics.views} / 平均視聴率${entry.analytics.avgViewRate}% / 登録者増${entry.analytics.subscriberGain} / 継続${retentionLabel(entry.analytics.retentionLevel)}`
   ));
   const weakLines = weakEntries.map(entry => (
-    `- ${entryTitle(entry)} / 評価${entry.score} / 視聴${entry.analytics.views} / 平均視聴率${entry.analytics.avgViewRate}% / 登録者増${entry.analytics.subscriberGain} / 継続${retentionLabel(entry.analytics.retentionLevel)} / メモ: ${entry.resultMemo || entry.nextRule || "未記入"}`
+    `- ${entryTitle(entry)} / ${topicTagLabel(entry.topicTag) || "ネタ種類未設定"} / 評価${entry.score} / 視聴${entry.analytics.views} / 平均視聴率${entry.analytics.avgViewRate}% / 登録者増${entry.analytics.subscriberGain} / 継続${retentionLabel(entry.analytics.retentionLevel)} / メモ: ${entry.resultMemo || entry.nextRule || "未記入"}`
   ));
 
   return [
@@ -239,7 +245,7 @@ function escapeCsvCell(value: string) {
 
 export const REVIEW_CSV_HEADER = [
   "savedAt",
-  "category",
+  "ネタ種類",
   "topic",
   "score",
   "promptSnapshot",
@@ -276,7 +282,7 @@ export function parseReviewCsv(csv: string): ForgeReviewEntry[] {
       return {
         id: `csv-${Date.now()}-${index}`,
         savedAt,
-        category: normalizeCategory(cellByHeader(row, indexByHeader, ["category"])),
+        topicTag: normalizeTopicTag(cellByHeader(row, indexByHeader, ["topicTag", "ネタ種類", "tag", "category"])),
         topic,
         score: Number(cellByHeader(row, indexByHeader, ["score"])) || 3,
         promptSnapshot: cellByHeader(row, indexByHeader, ["promptSnapshot"]),
@@ -310,7 +316,7 @@ export function mergeReviewEntries(entries: ForgeReviewEntry[]) {
 export function buildReviewCsv(entries: ForgeReviewEntry[]) {
   const rows = entries.map(entry => [
     entry.savedAt,
-    entry.category,
+    topicTagLabel(entry.topicTag),
     entry.topic,
     String(entry.score),
     entry.promptSnapshot,

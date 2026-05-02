@@ -14,8 +14,10 @@ import {
   CATEGORIES,
   MODE_TABS,
   SCRIPT_REVIEW_RUBRIC,
+  TOPIC_TAGS,
   type CategoryId,
   type Mode,
+  type TopicTagId,
 } from "@/data/forge/promptConfig";
 import { buildForgePrompt, getDuration, getSeCount } from "@/lib/forge/promptBuilders";
 import {
@@ -30,6 +32,10 @@ import {
 
 const PASSWORD = "garikimbs";
 
+function getTopicTagLabel(value: TopicTagId | "") {
+  return TOPIC_TAGS.find(tag => tag.id === value)?.label || "未設定";
+}
+
 export default function ForgePage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
@@ -37,6 +43,7 @@ export default function ForgePage() {
 
   const [cat, setCat] = useState<CategoryId | "">("");
   const [count, setCount] = useState(3);
+  const [ideaText, setIdeaText] = useState("");
   const [topic, setTopic] = useState("");
   const [mats, setMats] = useState("");
   const [supp, setSupp] = useState("");
@@ -51,6 +58,7 @@ export default function ForgePage() {
   const [reviewResult, setReviewResult] = useState("");
   const [reviewScore, setReviewScore] = useState(3);
   const [reviewNextRule, setReviewNextRule] = useState("");
+  const [topicTag, setTopicTag] = useState<TopicTagId | "">("");
   const [reviewEntries, setReviewEntries] = useState<ForgeReviewEntry[]>([]);
   const [improvementMemo, setImprovementMemo] = useState("");
   const [reviewImportStatus, setReviewImportStatus] = useState("");
@@ -71,7 +79,8 @@ export default function ForgePage() {
     seText,
     csvText,
     csvLabel,
-  }), [mode, cat, count, topic, mats, supp, seText, csvText, csvLabel]);
+    ideaText,
+  }), [mode, cat, count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
 
   const scriptPromptSnapshot = useMemo(() => buildForgePrompt({
     mode: "script",
@@ -83,7 +92,8 @@ export default function ForgePage() {
     seText,
     csvText,
     csvLabel,
-  }), [cat, count, topic, mats, supp, seText, csvText, csvLabel]);
+    ideaText,
+  }), [cat, count, topic, mats, supp, seText, csvText, csvLabel, ideaText]);
 
   const analyticsInsights = useMemo(() => buildAnalyticsInsights({
     views,
@@ -162,7 +172,7 @@ export default function ForgePage() {
     const entry: ForgeReviewEntry = {
       id: crypto.randomUUID(),
       savedAt: new Date().toISOString(),
-      category: cat,
+      topicTag,
       topic: topic.trim(),
       score: reviewScore,
       promptSnapshot: scriptPromptSnapshot,
@@ -186,7 +196,7 @@ export default function ForgePage() {
     setReviewResult("");
     setReviewNextRule("");
   }, [
-    cat,
+    topicTag,
     topic,
     scriptPromptSnapshot,
     reviewScore,
@@ -235,7 +245,7 @@ export default function ForgePage() {
       "",
       "保存日時:",
       "投稿日時:",
-      "カテゴリ:",
+      "ネタ種類:",
       "お題:",
       "評価点:",
       "",
@@ -336,31 +346,33 @@ export default function ForgePage() {
 
       <div style={S.cols}>
         <div style={S.left}>
-          {mode === "script" ? (
+          {mode === "idea" ? (
             <>
-              <Block n="1" t="カテゴリ">
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {CATEGORIES.map(c => {
-                    const on = cat === c.id;
-                    return (
-                      <button key={c.id} onClick={() => setCat(c.id)} style={on ? S.cardOn : S.card}>
-                        <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: on ? C.acc : C.hi }}>{c.label}</span>
-                          <span style={{ fontSize: 11, color: C.dim }}>{c.sub}</span>
-                        </div>
-                        <p style={{ fontSize: 12, color: C.txt, lineHeight: 1.65, margin: "0 0 6px" }}>{c.detail}</p>
-                        <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                          {c.examples.map((ex, i) => (
-                            <span key={i} style={S.exTag}>{ex}</span>
-                          ))}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+              <Block n="1" t="ネタの原石">
+                <textarea
+                  value={ideaText}
+                  onChange={e => setIdeaText(e.target.value)}
+                  placeholder={"例：\n新キャラのウルトが強そう\n今の環境でオーティスが地味に強い気がする\nこのバグ、悪用したらやばそう\nアプデ内容はあるけど、どこを動画にすればいいかわからない"}
+                  style={S.ta}
+                  rows={10}
+                />
+                <p style={S.meta}>まだ雑でOK。事実、噂、違和感、思いつき、素材メモをそのまま入れる欄です。</p>
               </Block>
 
-              <Block n="2" t="項目数">
+              <Block n="2" t="想定カテゴリ（任意）">
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {CATEGORIES.map(c => (
+                    <button key={c.id} onClick={() => setCat(c.id)} style={cat === c.id ? S.chipOn : S.chip}>
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <p style={S.meta}>迷ったら未選択でもOK。深掘り結果で、どの切り口が強いかも判定させます。</p>
+              </Block>
+            </>
+          ) : mode === "script" ? (
+            <>
+              <Block n="1" t="項目数">
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <select value={count} onChange={e => setCount(Number(e.target.value))} style={S.sel}>
                     {Array.from({ length: 30 }, (_, i) => i + 1).map(n => (
@@ -373,7 +385,7 @@ export default function ForgePage() {
                 </div>
               </Block>
 
-              <Block n="3" t="お題">
+              <Block n="2" t="お題">
                 <textarea
                   value={topic}
                   onChange={e => setTopic(e.target.value)}
@@ -383,7 +395,7 @@ export default function ForgePage() {
                 />
               </Block>
 
-              <Block n="4" t="情報素材（データ貼り付け）">
+              <Block n="3" t="情報素材（データ貼り付け）">
                 <textarea
                   value={mats}
                   onChange={e => setMats(e.target.value)}
@@ -393,7 +405,7 @@ export default function ForgePage() {
                 />
               </Block>
 
-              <Block n="5" t="補足説明（任意）">
+              <Block n="4" t="補足説明（任意）">
                 <textarea
                   value={supp}
                   onChange={e => setSupp(e.target.value)}
@@ -412,7 +424,7 @@ export default function ForgePage() {
                   ブラウザ内では作業用に保持するだけで、正式な保存は `CSV / TXT` の手動ダウンロード前提です。蓄積データは基礎プロンプトの改善にだけ使い、台本生成時には混ぜません。
                 </p>
                 <div style={S.tipBox}>
-                  <div style={S.tipRow}>保存単位: `台本1本 = 台本本文 + 指標 + メモ + 改善仮説 + その時点の台本生成プロンプト`</div>
+                  <div style={S.tipRow}>保存単位: `台本1本 = ネタ種類 + 台本本文 + 指標 + メモ + 改善仮説 + その時点の台本生成プロンプト`</div>
                   <div style={S.tipRow}>用途: 「どの台本が伸びたか」「どの台本が駄作か」を比較し、基礎プロンプトの改訂材料にする</div>
                   <div style={S.tipRow}>正式なローカル保存: `forge-review-log.csv` や `prompt-improvement-report.txt` を自分でダウンロードして管理</div>
                   <div style={S.tipRow}>この画面の一覧は再読み込みや機種変更で消える前提。残したい情報は必ずファイルに書き出す</div>
@@ -467,6 +479,27 @@ export default function ForgePage() {
                   {SCRIPT_REVIEW_RUBRIC.map(item => (
                     <div key={item} style={S.tipRow}>{item}</div>
                   ))}
+                </div>
+                <div style={{ margin: "10px 0" }}>
+                  <div style={{ fontSize: 11, color: C.dim, fontWeight: 700, marginBottom: 6 }}>ネタ種類（Excelタグ）</div>
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    <button
+                      onClick={() => setTopicTag("")}
+                      style={topicTag === "" ? S.chipOn : S.chip}
+                    >
+                      未設定
+                    </button>
+                    {TOPIC_TAGS.map(tag => (
+                      <button
+                        key={tag.id}
+                        onClick={() => setTopicTag(tag.id)}
+                        style={topicTag === tag.id ? S.chipOn : S.chip}
+                      >
+                        {tag.label}
+                      </button>
+                    ))}
+                  </div>
+                  <p style={S.meta}>ここは評価CSVにだけ保存します。台本生成プロンプトには混ぜず、後から「どのネタ種類が伸びたか」を見るためのタグです。</p>
                 </div>
                 <div style={S.analyticsGrid}>
                   <MetricField label="視聴回数" value={views} onChange={setViews} />
@@ -603,7 +636,7 @@ export default function ForgePage() {
                       <div key={entry.id} style={S.reviewItem}>
                         <div style={{ display: "flex", justifyContent: "space-between", gap: 12 }}>
                           <span style={{ fontSize: 11, fontWeight: 700, color: C.acc }}>
-                            {entry.category || "未選択"} / {entry.score}点
+                            {getTopicTagLabel(entry.topicTag)} / {entry.score}点
                           </span>
                           <span style={{ fontSize: 10, color: C.dim }}>
                             {new Date(entry.savedAt).toLocaleString("ja-JP")}
@@ -729,6 +762,8 @@ export default function ForgePage() {
             <span style={{ fontSize: 14, fontWeight: 700, color: C.hi }}>
               {mode === "script"
                 ? "📋 台本生成プロンプト"
+                : mode === "idea"
+                  ? "🔎 ネタ深掘りプロンプト"
                 : mode === "csv"
                   ? "📐 CSV字幕プロンプト"
                   : mode === "se"
@@ -745,6 +780,8 @@ export default function ForgePage() {
             <span style={{ color: C.acc, fontWeight: 700, fontSize: 11 }}>
               {mode === "review"
                 ? "→ 台本と指標を集計 → 基礎プロンプト改訂へ"
+                : mode === "idea"
+                ? "→ ChatGPTに貼る → 不足情報と切り口を確認 → ①へ"
                 : mode === "script"
                 ? "→ ChatGPTに貼る → 結果を評価 → 基礎文を改訂"
                 : mode === "se"
@@ -807,7 +844,7 @@ function ArchiveItem({
         <span style={badgeStyle}>{badgeText}</span>
       </div>
       <p style={{ margin: "8px 0 0", fontSize: 11, color: C.dim, lineHeight: 1.55 }}>
-        再生 {entry.analytics.views} / 視聴率 {entry.analytics.avgViewRate}% / 高評価 {entry.analytics.likes} / 登録者増 {entry.analytics.subscriberGain}
+        {getTopicTagLabel(entry.topicTag)} / 再生 {entry.analytics.views} / 視聴率 {entry.analytics.avgViewRate}% / 高評価 {entry.analytics.likes} / 登録者増 {entry.analytics.subscriberGain}
       </p>
       <p style={{ margin: "6px 0 0", fontSize: 12, color: C.txt, lineHeight: 1.55 }}>
         {entry.nextRule || entry.resultMemo || "メモなし"}
