@@ -2,7 +2,7 @@ import {
   CSV_PROMPT,
   IDEA_DEEP_DIVE_PROMPT,
   SE_PROMPT,
-  SCRIPT_PROMPT_V5,
+  SCRIPT_PROMPT_V6,
   type Mode,
 } from "@/data/forge/promptConfig";
 
@@ -94,9 +94,9 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
 
   const supplementBlock = supp.trim()
     ? `【補足説明・追加指示】\n${supp.trim()}`
-    : "【補足説明・追加指示】\n（未入力）";
+    : "【補足説明・追加指示】\nなし";
 
-  return SCRIPT_PROMPT_V5
+  return SCRIPT_PROMPT_V6
     .replaceAll("{{count}}", String(count))
     .replaceAll("{{duration}}", getDuration(count))
     .replaceAll("{{topic}}", topic || "（未入力）")
