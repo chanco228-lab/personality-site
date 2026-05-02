@@ -59,15 +59,9 @@ export function buildForgePrompt(input: BuildForgePromptInput) {
   } = input;
 
   if (mode === "idea") {
-    const category = CATEGORIES.find(c => c.id === cat);
-    const label = category?.label || "未選択";
-    const categorySub = category?.sub || "未選択";
-
     return [
       IDEA_DEEP_DIVE_PROMPT,
       `\n---\n\n【ネタの原石】\n${ideaText || "（未入力）"}`,
-      `\n【想定カテゴリ】${label}`,
-      `\n【カテゴリ補足】${categorySub}`,
     ].join("\n");
   }
 

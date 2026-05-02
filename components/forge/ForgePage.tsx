@@ -358,17 +358,6 @@ export default function ForgePage() {
                 />
                 <p style={S.meta}>まだ雑でOK。事実、噂、違和感、思いつき、素材メモをそのまま入れる欄です。</p>
               </Block>
-
-              <Block n="2" t="想定カテゴリ（任意）">
-                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {CATEGORIES.map(c => (
-                    <button key={c.id} onClick={() => setCat(c.id)} style={cat === c.id ? S.chipOn : S.chip}>
-                      {c.label}
-                    </button>
-                  ))}
-                </div>
-                <p style={S.meta}>迷ったら未選択でもOK。深掘り結果で、どの切り口が強いかも判定させます。</p>
-              </Block>
             </>
           ) : mode === "script" ? (
             <>
