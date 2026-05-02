@@ -1,1 +1,1 @@
-export { default } from "./script_forge_nextjs_page";
+export { default } from "@/components/forge/ForgePage";
