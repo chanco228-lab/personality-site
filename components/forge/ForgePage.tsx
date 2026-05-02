@@ -23,6 +23,8 @@ import {
   buildPromptImprovementReport,
   buildReviewCsv,
   buildReviewCsvTemplate,
+  mergeReviewEntries,
+  parseReviewCsv,
   type ForgeReviewEntry,
 } from "@/lib/forge/reviewCycle";
 
@@ -51,6 +53,7 @@ export default function ForgePage() {
   const [reviewNextRule, setReviewNextRule] = useState("");
   const [reviewEntries, setReviewEntries] = useState<ForgeReviewEntry[]>([]);
   const [improvementMemo, setImprovementMemo] = useState("");
+  const [reviewImportStatus, setReviewImportStatus] = useState("");
   const [views, setViews] = useState(0);
   const [avgViewRate, setAvgViewRate] = useState(0);
   const [likes, setLikes] = useState(0);
@@ -176,9 +179,10 @@ export default function ForgePage() {
       },
     };
 
-    const nextEntries = [entry, ...reviewEntries].slice(0, 50);
+    const nextEntries = mergeReviewEntries([entry, ...reviewEntries]);
     setReviewEntries(nextEntries);
     setImprovementMemo(buildPromptImprovementReport(nextEntries));
+    setReviewImportStatus(`画面内の評価DBは ${nextEntries.length} 件です。CSVで書き出すと台帳に反映できます。`);
     setReviewResult("");
     setReviewNextRule("");
   }, [
@@ -253,12 +257,30 @@ export default function ForgePage() {
     ].join("\n"));
   }, [downloadTextFile]);
 
+  const importReviewCsv = useCallback(async (file: File | null) => {
+    if (!file) return;
+
+    try {
+      const content = await file.text();
+      const imported = parseReviewCsv(content);
+      const nextEntries = mergeReviewEntries([...imported, ...reviewEntries]);
+      setReviewEntries(nextEntries);
+      setImprovementMemo(buildPromptImprovementReport(nextEntries));
+      setReviewImportStatus(`${file.name} から ${imported.length} 件を読み込みました。画面内の評価DBは ${nextEntries.length} 件です。`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "CSVを読み込めませんでした。";
+      setReviewImportStatus(message);
+    }
+  }, [reviewEntries]);
+
   const clearReviewLog = useCallback(() => {
     setReviewEntries([]);
     setImprovementMemo("");
+    setReviewImportStatus("");
   }, []);
 
   const preRef = useRef<HTMLPreElement>(null);
+  const reviewCsvInputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (preRef.current) {
       preRef.current.scrollTop = preRef.current.scrollHeight;
@@ -395,6 +417,35 @@ export default function ForgePage() {
                   <div style={S.tipRow}>正式なローカル保存: `forge-review-log.csv` や `prompt-improvement-report.txt` を自分でダウンロードして管理</div>
                   <div style={S.tipRow}>この画面の一覧は再読み込みや機種変更で消える前提。残したい情報は必ずファイルに書き出す</div>
                 </div>
+                <input
+                  ref={reviewCsvInputRef}
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={e => {
+                    void importReviewCsv(e.target.files?.[0] ?? null);
+                    e.currentTarget.value = "";
+                  }}
+                  style={{ display: "none" }}
+                />
+                <div style={S.actionRow}>
+                  <button
+                    onClick={() => reviewCsvInputRef.current?.click()}
+                    style={S.secondaryBtn}
+                  >
+                    既存CSVを読み込む
+                  </button>
+                  <button
+                    onClick={downloadReviewCsvTemplate}
+                    style={S.secondaryBtn}
+                  >
+                    評価CSVテンプレート
+                  </button>
+                </div>
+                {reviewImportStatus && (
+                  <p style={{ ...S.meta, color: reviewImportStatus.includes("読み込") || reviewImportStatus.includes("評価DB") ? C.acc : "#c0392b" }}>
+                    {reviewImportStatus}
+                  </p>
+                )}
               </Block>
 
               <Block n="2" t="基礎プロンプト改善レポート">

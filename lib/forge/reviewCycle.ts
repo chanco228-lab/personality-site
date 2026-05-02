@@ -36,6 +36,77 @@ function normalizeAnalytics(value: unknown): ForgeAnalytics {
   };
 }
 
+function normalizeRetentionLevel(value: string): ForgeAnalytics["retentionLevel"] {
+  if (value === "high" || value === "高い") return "high";
+  if (value === "low" || value === "弱い") return "low";
+  return "mid";
+}
+
+function normalizeCategory(value: string): CategoryId | "" {
+  if (value === "hype" || value === "serious" || value === "data") return value;
+  return "";
+}
+
+function parseCsvRows(csv: string) {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = "";
+  let inQuotes = false;
+  const text = csv.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+
+    if (inQuotes) {
+      if (ch === "\"") {
+        if (text[i + 1] === "\"") {
+          cell += "\"";
+          i += 1;
+        } else {
+          inQuotes = false;
+        }
+      } else {
+        cell += ch;
+      }
+      continue;
+    }
+
+    if (ch === "\"") {
+      inQuotes = true;
+    } else if (ch === ",") {
+      row.push(cell);
+      cell = "";
+    } else if (ch === "\n") {
+      row.push(cell);
+      if (row.some(value => value.trim())) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += ch;
+    }
+  }
+
+  row.push(cell);
+  if (row.some(value => value.trim())) rows.push(row);
+  return rows;
+}
+
+function cellByHeader(row: string[], indexByHeader: Map<string, number>, names: string[]) {
+  for (const name of names) {
+    const index = indexByHeader.get(name);
+    if (index !== undefined) return row[index] || "";
+  }
+  return "";
+}
+
+function reviewEntryKey(entry: ForgeReviewEntry) {
+  return [
+    entry.savedAt,
+    entry.topic,
+    entry.script.slice(0, 120),
+  ].join("\u0001");
+}
+
 
 export function buildAnalyticsInsights(analytics: ForgeAnalytics) {
   const insights: string[] = [];
@@ -180,8 +251,61 @@ export const REVIEW_CSV_HEADER = [
   "postedAt",
   "script",
   "resultMemo",
-    "promptImprovementHypothesis",
+  "promptImprovementHypothesis",
 ];
+
+export function parseReviewCsv(csv: string): ForgeReviewEntry[] {
+  const rows = parseCsvRows(csv);
+  if (rows.length === 0) return [];
+
+  const header = rows[0].map(cell => cell.trim().replace(/^\uFEFF/, ""));
+  const indexByHeader = new Map(header.map((name, index) => [name, index]));
+
+  if (!indexByHeader.has("script") && !indexByHeader.has("topic")) {
+    throw new Error("評価ログCSVのヘッダーが見つかりません。forge-review-log.csv かテンプレートCSVを読み込んでください。");
+  }
+
+  return rows.slice(1)
+    .filter(row => row.some(cell => cell.trim()))
+    .map((row, index) => {
+      const savedAt = cellByHeader(row, indexByHeader, ["savedAt"]) || new Date().toISOString();
+      const script = cellByHeader(row, indexByHeader, ["script"]);
+      const topic = cellByHeader(row, indexByHeader, ["topic"]);
+      const nextRule = cellByHeader(row, indexByHeader, ["promptImprovementHypothesis", "nextRule"]);
+
+      return {
+        id: `csv-${Date.now()}-${index}`,
+        savedAt,
+        category: normalizeCategory(cellByHeader(row, indexByHeader, ["category"])),
+        topic,
+        score: Number(cellByHeader(row, indexByHeader, ["score"])) || 3,
+        promptSnapshot: cellByHeader(row, indexByHeader, ["promptSnapshot"]),
+        script,
+        resultMemo: cellByHeader(row, indexByHeader, ["resultMemo"]),
+        nextRule,
+        analytics: normalizeAnalytics({
+          views: cellByHeader(row, indexByHeader, ["views"]),
+          avgViewRate: cellByHeader(row, indexByHeader, ["avgViewRate"]),
+          likes: cellByHeader(row, indexByHeader, ["likes"]),
+          subscriberGain: cellByHeader(row, indexByHeader, ["subscriberGain"]),
+          retentionLevel: normalizeRetentionLevel(cellByHeader(row, indexByHeader, ["retentionLevel"])),
+          postedAt: cellByHeader(row, indexByHeader, ["postedAt"]),
+        }),
+      };
+    });
+}
+
+export function mergeReviewEntries(entries: ForgeReviewEntry[]) {
+  const seen = new Set<string>();
+  return entries
+    .filter(entry => {
+      const key = reviewEntryKey(entry);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => Date.parse(b.savedAt) - Date.parse(a.savedAt));
+}
 
 export function buildReviewCsv(entries: ForgeReviewEntry[]) {
   const rows = entries.map(entry => [
