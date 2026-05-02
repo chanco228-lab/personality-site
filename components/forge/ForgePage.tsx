@@ -70,6 +70,29 @@ function averageMetric(values: Array<number | null>) {
   return Math.round((known.reduce((sum, value) => sum + value, 0) / known.length) * 10) / 10;
 }
 
+function getLikeRate(entry: ForgeReviewEntry) {
+  const { views, likes } = entry.analytics;
+  if (views === null || likes === null || views <= 0) return null;
+  return Math.round((likes / views) * 1000) / 10;
+}
+
+function getValueScore(entry: ForgeReviewEntry, maxViews: number) {
+  const views = entry.analytics.views ?? 0;
+  const avgViewRate = entry.analytics.avgViewRate ?? 0;
+  const retentionRate = entry.analytics.retentionRate ?? 0;
+  const likeRate = getLikeRate(entry) ?? 0;
+  const normalizedViews = maxViews > 0 ? Math.log10(views + 1) / Math.log10(maxViews + 1) : 0;
+
+  const score =
+    normalizedViews * 40 +
+    Math.min(likeRate, 15) / 15 * 25 +
+    (entry.score / 5) * 20 +
+    avgViewRate / 100 * 10 +
+    retentionRate / 100 * 5;
+
+  return Math.round(score * 10) / 10;
+}
+
 export default function ForgePage() {
   const [authed, setAuthed] = useState(false);
   const [pw, setPw] = useState("");
@@ -107,6 +130,12 @@ export default function ForgePage() {
   const [postedMonth, setPostedMonth] = useState("");
   const [postedDay, setPostedDay] = useState("");
   const [postedHour, setPostedHour] = useState("");
+  const [reviewSearch, setReviewSearch] = useState("");
+  const [reviewSourceFilter, setReviewSourceFilter] = useState<ForgeScriptSource | "all">("all");
+  const [reviewTagFilter, setReviewTagFilter] = useState<TopicTagId | "all">("all");
+  const [reviewMinScore, setReviewMinScore] = useState<"all" | "3" | "4" | "5">("all");
+  const [reviewSort, setReviewSort] = useState<"value" | "views" | "likeRate" | "score" | "recent">("value");
+  const [selectedReviewId, setSelectedReviewId] = useState("");
 
   const prompt = useMemo(() => buildForgePrompt({
     mode,
@@ -172,21 +201,85 @@ export default function ForgePage() {
     averageMetric(reviewEntries.map(entry => entry.analytics.avgViewRate))
   ), [reviewEntries]);
 
+  const maxReviewViews = useMemo(() => (
+    Math.max(1, ...reviewEntries.map(entry => entry.analytics.views ?? 0))
+  ), [reviewEntries]);
+
+  const filteredReviewEntries = useMemo(() => {
+    const keyword = reviewSearch.trim().toLowerCase();
+    const minScore = reviewMinScore === "all" ? 0 : Number(reviewMinScore);
+
+    const filtered = reviewEntries.filter(entry => {
+      if (reviewSourceFilter !== "all" && entry.sourceType !== reviewSourceFilter) return false;
+      if (reviewTagFilter !== "all" && entry.topicTag !== reviewTagFilter) return false;
+      if (entry.score < minScore) return false;
+
+      if (!keyword) return true;
+
+      const haystack = [
+        getEntryTitle(entry),
+        entry.script,
+        entry.resultMemo,
+        entry.nextRule,
+        entry.sourceName,
+        getSourceLabel(entry.sourceType),
+        getTopicTagLabel(entry.topicTag),
+      ].join("\n").toLowerCase();
+
+      return haystack.includes(keyword);
+    });
+
+    return [...filtered].sort((a, b) => {
+      if (reviewSort === "recent") {
+        return Date.parse(b.savedAt) - Date.parse(a.savedAt);
+      }
+      if (reviewSort === "views") {
+        return (b.analytics.views ?? -1) - (a.analytics.views ?? -1);
+      }
+      if (reviewSort === "likeRate") {
+        return (getLikeRate(b) ?? -1) - (getLikeRate(a) ?? -1);
+      }
+      if (reviewSort === "score") {
+        const scoreDiff = b.score - a.score;
+        if (scoreDiff !== 0) return scoreDiff;
+        return (b.analytics.views ?? -1) - (a.analytics.views ?? -1);
+      }
+
+      const valueDiff = getValueScore(b, maxReviewViews) - getValueScore(a, maxReviewViews);
+      if (valueDiff !== 0) return valueDiff;
+      return (b.analytics.views ?? -1) - (a.analytics.views ?? -1);
+    });
+  }, [reviewEntries, reviewSearch, reviewSourceFilter, reviewTagFilter, reviewMinScore, reviewSort, maxReviewViews]);
+
+  const filteredAverageScore = useMemo(() => (
+    filteredReviewEntries.length === 0
+      ? null
+      : Math.round((filteredReviewEntries.reduce((sum, entry) => sum + entry.score, 0) / filteredReviewEntries.length) * 10) / 10
+  ), [filteredReviewEntries]);
+
+  const filteredAverageViewRate = useMemo(() => (
+    averageMetric(filteredReviewEntries.map(entry => entry.analytics.avgViewRate))
+  ), [filteredReviewEntries]);
+
   const sourceBreakdown = useMemo(() => (
     (Object.keys(SCRIPT_SOURCE_LABELS) as ForgeScriptSource[]).map(source => ({
       source,
       label: getSourceLabel(source),
-      count: reviewEntries.filter(entry => entry.sourceType === source).length,
+      count: filteredReviewEntries.filter(entry => entry.sourceType === source).length,
     })).filter(item => item.count > 0)
-  ), [reviewEntries]);
+  ), [filteredReviewEntries]);
 
   const tagBreakdown = useMemo(() => (
     TOPIC_TAGS.map(tag => ({
       id: tag.id,
       label: tag.label,
-      count: reviewEntries.filter(entry => entry.topicTag === tag.id).length,
+      count: filteredReviewEntries.filter(entry => entry.topicTag === tag.id).length,
     })).filter(item => item.count > 0).sort((a, b) => b.count - a.count).slice(0, 6)
-  ), [reviewEntries]);
+  ), [filteredReviewEntries]);
+
+  const selectedReviewEntry = useMemo(() => (
+    filteredReviewEntries.find(entry => entry.id === selectedReviewId) ?? filteredReviewEntries[0] ?? null
+  ), [filteredReviewEntries, selectedReviewId]);
 
   const currentDraftSummary = useMemo(() => ({
     title: reviewTitle.trim() || "未入力",
@@ -384,6 +477,17 @@ export default function ForgePage() {
       preRef.current.scrollTop = preRef.current.scrollHeight;
     }
   }, [prompt]);
+
+  useEffect(() => {
+    if (filteredReviewEntries.length === 0) {
+      if (selectedReviewId) setSelectedReviewId("");
+      return;
+    }
+
+    if (!filteredReviewEntries.some(entry => entry.id === selectedReviewId)) {
+      setSelectedReviewId(filteredReviewEntries[0].id);
+    }
+  }, [filteredReviewEntries, selectedReviewId]);
 
   if (!authed) {
     return (
@@ -871,17 +975,18 @@ export default function ForgePage() {
             <div style={S.dashboardPane}>
               <div style={S.dashboardHero}>
                 <p style={S.dashboardHeroEyebrow}>Loaded Data</p>
-                <h3 style={S.dashboardHeroTitle}>いま読めている評価DBを、その場で要約</h3>
+                <h3 style={S.dashboardHeroTitle}>読み込んだ評価DBから、勝ち台本を探し出す</h3>
                 <p style={S.dashboardHeroText}>
-                  右側はプロンプトではなく、左で編集中の1件と、読み込み済みログ全体の状態を視覚的にまとめる欄です。
+                  再生回数、高評価率、評価をまとめて見て、条件に合う台本だけを右側で探せるビューです。
+                  良い数字を出した台本の本文まで、その場で確認できます。
                 </p>
               </div>
 
               <div style={S.dashboardStatGrid}>
                 <DashboardStatCard label="読み込み件数" value={`${reviewEntries.length}件`} tone="dark" />
-                <DashboardStatCard label="タイトル数" value={`${uniqueTitleCount}件`} />
-                <DashboardStatCard label="平均評価" value={metricText(averageScore)} />
-                <DashboardStatCard label="平均視聴率" value={metricText(averageLoadedViewRate, "%")} />
+                <DashboardStatCard label="条件一致" value={`${filteredReviewEntries.length}件`} />
+                <DashboardStatCard label="平均評価" value={metricText(filteredAverageScore)} />
+                <DashboardStatCard label="平均視聴率" value={metricText(filteredAverageViewRate, "%")} />
               </div>
 
               <div style={S.dashboardSection}>
@@ -903,6 +1008,153 @@ export default function ForgePage() {
                     <MiniMetric label="高評価" value={currentDraftSummary.likes} />
                     <MiniMetric label="登録者増" value={currentDraftSummary.subscriberGain} />
                     <MiniMetric label="視聴継続" value={currentDraftSummary.retentionRate} />
+                  </div>
+                </div>
+              </div>
+
+              <div style={S.dashboardSection}>
+                <div style={S.dashboardSectionHead}>
+                  <span style={S.dashboardSectionTitle}>勝ち台本ファインダー</span>
+                  <span style={S.dashboardSectionMeta}>
+                    並び順: {reviewSort === "value" ? "価値順" : reviewSort === "views" ? "再生順" : reviewSort === "likeRate" ? "高評価率順" : reviewSort === "score" ? "評価順" : "最新順"}
+                  </span>
+                </div>
+                <div style={S.dashboardSearchRow}>
+                  <input
+                    value={reviewSearch}
+                    onChange={e => setReviewSearch(e.target.value)}
+                    placeholder="タイトル・台本本文・メモで検索"
+                    style={S.dashboardSearchInput}
+                  />
+                  <select value={reviewSort} onChange={e => setReviewSort(e.target.value as typeof reviewSort)} style={S.dashboardSelect}>
+                    <option value="value">価値順</option>
+                    <option value="views">再生順</option>
+                    <option value="likeRate">高評価率順</option>
+                    <option value="score">評価順</option>
+                    <option value="recent">最新順</option>
+                  </select>
+                  <select value={reviewMinScore} onChange={e => setReviewMinScore(e.target.value as typeof reviewMinScore)} style={S.dashboardSelect}>
+                    <option value="all">評価すべて</option>
+                    <option value="5">評価5以上</option>
+                    <option value="4">評価4以上</option>
+                    <option value="3">評価3以上</option>
+                  </select>
+                </div>
+
+                <div style={S.dashboardFilterLabel}>作成元</div>
+                <div style={S.dashboardChipRow}>
+                  <button onClick={() => setReviewSourceFilter("all")} style={reviewSourceFilter === "all" ? S.dashboardChipOn : S.dashboardChip}>
+                    すべて
+                  </button>
+                  {(Object.keys(SCRIPT_SOURCE_LABELS) as ForgeScriptSource[]).map(source => (
+                    <button
+                      key={source}
+                      onClick={() => setReviewSourceFilter(source)}
+                      style={reviewSourceFilter === source ? S.dashboardChipOn : S.dashboardChip}
+                    >
+                      {getSourceLabel(source)}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={S.dashboardFilterLabel}>ネタ種類</div>
+                <div style={S.dashboardChipRow}>
+                  <button onClick={() => setReviewTagFilter("all")} style={reviewTagFilter === "all" ? S.dashboardChipOn : S.dashboardChip}>
+                    すべて
+                  </button>
+                  {TOPIC_TAGS.map(tag => (
+                    <button
+                      key={tag.id}
+                      onClick={() => setReviewTagFilter(tag.id)}
+                      style={reviewTagFilter === tag.id ? S.dashboardChipOn : S.dashboardChip}
+                    >
+                      {tag.label}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={S.dashboardFinderGrid}>
+                  <div style={S.dashboardResults}>
+                    {filteredReviewEntries.length === 0 ? (
+                      <p style={S.emptyNote}>条件に合う台本がまだありません。検索語か絞り込み条件を緩めてみてください。</p>
+                    ) : (
+                      filteredReviewEntries.slice(0, 18).map(entry => {
+                        const likeRate = getLikeRate(entry);
+                        const valueScore = getValueScore(entry, maxReviewViews);
+                        const isActive = selectedReviewEntry?.id === entry.id;
+
+                        return (
+                          <button
+                            key={entry.id}
+                            onClick={() => setSelectedReviewId(entry.id)}
+                            style={isActive ? S.dashboardResultItemOn : S.dashboardResultItem}
+                          >
+                            <div style={S.dashboardResultTop}>
+                              <p style={S.dashboardResultTitle}>{getEntryTitle(entry)}</p>
+                              <span style={S.dashboardResultScore}>{valueScore}</span>
+                            </div>
+                            <p style={S.dashboardResultMeta}>
+                              {getSourceLabel(entry.sourceType)}
+                              {entry.sourceName ? `:${entry.sourceName}` : ""}
+                              {" / "}
+                              {getTopicTagLabel(entry.topicTag)}
+                            </p>
+                            <div style={S.dashboardBadgeRow}>
+                              <span style={S.dashboardBadge}>再生 {metricText(entry.analytics.views)}</span>
+                              <span style={S.dashboardBadge}>高評価率 {metricText(likeRate, "%")}</span>
+                              <span style={S.dashboardBadge}>評価 {entry.score}/5</span>
+                            </div>
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div style={S.dashboardDetailCard}>
+                    {selectedReviewEntry ? (
+                      <>
+                        <div style={S.dashboardDetailHead}>
+                          <div style={{ minWidth: 0 }}>
+                            <p style={S.dashboardDetailTitle}>{getEntryTitle(selectedReviewEntry)}</p>
+                            <p style={S.dashboardDetailMeta}>
+                              {getSourceLabel(selectedReviewEntry.sourceType)}
+                              {selectedReviewEntry.sourceName ? `:${selectedReviewEntry.sourceName}` : ""}
+                              {" / "}
+                              {getTopicTagLabel(selectedReviewEntry.topicTag)}
+                              {selectedReviewEntry.analytics.postedAt ? ` / ${selectedReviewEntry.analytics.postedAt}` : ""}
+                            </p>
+                          </div>
+                          <span style={S.dashboardHeroScore}>評価 {selectedReviewEntry.score}/5</span>
+                        </div>
+
+                        <div style={S.previewMetricGrid}>
+                          <MiniMetric label="価値スコア" value={String(getValueScore(selectedReviewEntry, maxReviewViews))} />
+                          <MiniMetric label="再生" value={metricText(selectedReviewEntry.analytics.views)} />
+                          <MiniMetric label="高評価率" value={metricText(getLikeRate(selectedReviewEntry), "%")} />
+                          <MiniMetric label="視聴率" value={metricText(selectedReviewEntry.analytics.avgViewRate, "%")} />
+                          <MiniMetric label="視聴継続" value={metricText(selectedReviewEntry.analytics.retentionRate, "%")} />
+                          <MiniMetric label="動画時間" value={metricText(selectedReviewEntry.analytics.videoDuration, "秒")} />
+                        </div>
+
+                        <div style={S.dashboardNotesGrid}>
+                          <div style={S.dashboardNoteCard}>
+                            <div style={S.dashboardNoteTitle}>結果メモ</div>
+                            <p style={S.dashboardNoteBody}>{selectedReviewEntry.resultMemo || "なし"}</p>
+                          </div>
+                          <div style={S.dashboardNoteCard}>
+                            <div style={S.dashboardNoteTitle}>改善仮説</div>
+                            <p style={S.dashboardNoteBody}>{selectedReviewEntry.nextRule || "なし"}</p>
+                          </div>
+                        </div>
+
+                        <div style={S.dashboardScriptCard}>
+                          <div style={S.dashboardNoteTitle}>台本本文</div>
+                          <div style={S.dashboardScriptBody}>{selectedReviewEntry.script || "台本未入力"}</div>
+                        </div>
+                      </>
+                    ) : (
+                      <p style={S.emptyNote}>右側で台本を開くには、まず左で保存するかCSVを読み込んでください。</p>
+                    )}
                   </div>
                 </div>
               </div>
@@ -947,34 +1199,6 @@ export default function ForgePage() {
                 </div>
               </div>
 
-              <div style={S.dashboardSection}>
-                <div style={S.dashboardSectionHead}>
-                  <span style={S.dashboardSectionTitle}>最新の読み込みデータ</span>
-                  <span style={S.dashboardSectionMeta}>{Math.min(reviewEntries.length, 5)}件表示</span>
-                </div>
-                {reviewEntries.length === 0 ? (
-                  <p style={S.emptyNote}>CSVを読み込むか、左側から1件保存するとここに表示されます。</p>
-                ) : (
-                  <div style={S.snapshotList}>
-                    {reviewEntries.slice(0, 5).map(entry => (
-                      <div key={entry.id} style={S.snapshotItem}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                          <div style={{ minWidth: 0 }}>
-                            <p style={S.snapshotTitle}>{getEntryTitle(entry)}</p>
-                            <p style={S.snapshotMeta}>
-                              {getSourceLabel(entry.sourceType)} / {getTopicTagLabel(entry.topicTag)} / 動画時間 {metricText(entry.analytics.videoDuration, "秒")}
-                            </p>
-                          </div>
-                          <span style={S.snapshotScore}>{entry.score}/5</span>
-                        </div>
-                        <p style={S.snapshotData}>
-                          再生 {metricText(entry.analytics.views)} / 視聴率 {metricText(entry.analytics.avgViewRate, "%")} / 登録者増 {metricText(entry.analytics.subscriberGain)} / 視聴継続 {metricText(entry.analytics.retentionRate, "%")}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           ) : (
             <>
@@ -1524,6 +1748,220 @@ const S: Record<string, CSSProperties> = {
     display: "grid",
     gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
     gap: 8,
+  },
+  dashboardSearchRow: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 1.4fr) minmax(120px, 0.45fr) minmax(120px, 0.45fr)",
+    gap: 8,
+    marginBottom: 12,
+  },
+  dashboardSearchInput: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: `1px solid ${C.bdr}`,
+    background: "#fff",
+    color: C.txt,
+    fontSize: 12,
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  dashboardSelect: {
+    width: "100%",
+    padding: "10px 12px",
+    borderRadius: 12,
+    border: `1px solid ${C.bdr}`,
+    background: "#fff",
+    color: C.txt,
+    fontSize: 12,
+    outline: "none",
+    boxSizing: "border-box",
+  },
+  dashboardFilterLabel: {
+    fontSize: 11,
+    color: C.dim,
+    fontWeight: 800,
+    margin: "2px 0 6px",
+  },
+  dashboardChipRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 12,
+  },
+  dashboardChip: {
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: "#f5f7fb",
+    border: `1px solid ${C.bdr}`,
+    color: C.dim,
+    fontSize: 11,
+    fontWeight: 700,
+    cursor: "pointer",
+  },
+  dashboardChipOn: {
+    padding: "7px 10px",
+    borderRadius: 999,
+    background: C.hi,
+    border: `1px solid ${C.hi}`,
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 800,
+    cursor: "pointer",
+    boxShadow: "0 8px 16px rgba(26,26,46,0.14)",
+  },
+  dashboardFinderGrid: {
+    display: "grid",
+    gridTemplateColumns: "minmax(0, 0.92fr) minmax(0, 1.08fr)",
+    gap: 12,
+    alignItems: "start",
+  },
+  dashboardResults: {
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+    maxHeight: 620,
+    overflowY: "auto",
+    paddingRight: 2,
+  },
+  dashboardResultItem: {
+    padding: "12px 13px",
+    borderRadius: 16,
+    border: `1px solid ${C.bdr}`,
+    background: "#f8fafc",
+    cursor: "pointer",
+    textAlign: "left",
+  },
+  dashboardResultItemOn: {
+    padding: "12px 13px",
+    borderRadius: 16,
+    border: `1px solid ${C.hi}`,
+    background: "linear-gradient(135deg, #ffffff 0%, #edf4ff 100%)",
+    cursor: "pointer",
+    textAlign: "left",
+    boxShadow: "0 14px 28px rgba(20,32,70,0.10)",
+  },
+  dashboardResultTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 8,
+    alignItems: "flex-start",
+    marginBottom: 4,
+  },
+  dashboardResultTitle: {
+    margin: 0,
+    fontSize: 13,
+    lineHeight: 1.45,
+    color: C.hi,
+    fontWeight: 800,
+  },
+  dashboardResultScore: {
+    padding: "4px 8px",
+    borderRadius: 999,
+    background: C.accDim,
+    color: C.acc,
+    fontSize: 11,
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  dashboardResultMeta: {
+    margin: "0 0 8px",
+    fontSize: 11,
+    color: C.dim,
+    lineHeight: 1.5,
+  },
+  dashboardBadgeRow: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  dashboardBadge: {
+    padding: "4px 7px",
+    borderRadius: 999,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+    color: C.txt,
+    fontSize: 10,
+    fontWeight: 700,
+  },
+  dashboardDetailCard: {
+    padding: "14px",
+    borderRadius: 18,
+    border: `1px solid ${C.bdr}`,
+    background: "linear-gradient(180deg, #ffffff 0%, #f8fbff 100%)",
+    boxShadow: "0 10px 28px rgba(20,32,70,0.05)",
+  },
+  dashboardDetailHead: {
+    display: "flex",
+    justifyContent: "space-between",
+    gap: 10,
+    alignItems: "flex-start",
+    marginBottom: 12,
+  },
+  dashboardDetailTitle: {
+    margin: "0 0 4px",
+    fontSize: 20,
+    lineHeight: 1.3,
+    color: C.hi,
+    fontWeight: 900,
+    letterSpacing: "-0.02em",
+  },
+  dashboardDetailMeta: {
+    margin: 0,
+    fontSize: 11,
+    color: C.dim,
+    lineHeight: 1.6,
+  },
+  dashboardHeroScore: {
+    padding: "6px 10px",
+    borderRadius: 999,
+    background: C.hi,
+    color: "#fff",
+    fontSize: 11,
+    fontWeight: 900,
+    whiteSpace: "nowrap",
+  },
+  dashboardNotesGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: 10,
+    marginTop: 12,
+  },
+  dashboardNoteCard: {
+    padding: "12px",
+    borderRadius: 14,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+  },
+  dashboardNoteTitle: {
+    fontSize: 11,
+    color: C.dim,
+    fontWeight: 800,
+    marginBottom: 6,
+  },
+  dashboardNoteBody: {
+    margin: 0,
+    fontSize: 12,
+    color: C.txt,
+    lineHeight: 1.65,
+    whiteSpace: "pre-wrap",
+  },
+  dashboardScriptCard: {
+    marginTop: 12,
+    padding: "12px",
+    borderRadius: 14,
+    background: "#fff",
+    border: `1px solid ${C.bdr}`,
+  },
+  dashboardScriptBody: {
+    marginTop: 6,
+    fontSize: 12,
+    lineHeight: 1.8,
+    color: C.txt,
+    whiteSpace: "pre-wrap",
+    wordBreak: "break-word",
+    maxHeight: 360,
+    overflowY: "auto",
   },
   miniMetric: {
     padding: "10px 10px 8px",
