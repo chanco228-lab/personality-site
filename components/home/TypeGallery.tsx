@@ -43,8 +43,7 @@ function textColor(hex: string): string {
 const YOIKYA_STOPS = ['#F5E12B', '#FFB800', '#FF7940', '#FF5068', '#FF66AA'];
 // 無キャ: lime → teal → sky → violet (cool spectrum)
 const MUIKYA_STOPS = ['#9BDC5A', '#2FC6B8', '#70AAEE', '#B9A7F5'];
-// 陰キャ: all black
-const IINKYA_BG = '#0E0E0E';
+// 陰キャ: ns=mid → white bg, ns=low → black bg (2-tone)
 
 // ── Preview: original hand-picked colors (8 cards) ───────────────────────────
 const PREVIEW_PALETTE: Record<string, { bg: string; color: string }> = {
@@ -101,7 +100,10 @@ const { previewCards, allCards } = (() => {
       const bg = gradient(MUIKYA_STOPS, i / Math.max(muki.length - 1, 1));
       return make(t, bg, textColor(bg));
     }),
-    ...iinkya.map(t => make(t, IINKYA_BG, '#FFFFFF')),
+    ...iinkya.map(t => {
+      const bg = t.ns === 'mid' ? '#FFFFFF' : '#0E0E0E';
+      return make(t, bg, t.ns === 'mid' ? '#0E0E0E' : '#FFFFFF');
+    }),
   ];
 
   return { previewCards, allCards };
@@ -117,6 +119,7 @@ export default function TypeGallery() {
   const visible = active === 'すべて' ? base : base.filter(t => t.tag === active);
 
   function handleClose() {
+    document.getElementById('type-gallery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setShowAll(false);
     setActive('すべて');
   }
@@ -141,7 +144,7 @@ export default function TypeGallery() {
           {FILTERS.map((f) => (
             <button
               key={f}
-              onClick={() => setActive(f)}
+              onClick={() => { setActive(f); if (f !== 'すべて') setShowAll(true); }}
               className={`font-display font-bold text-[13px] px-4 py-2 border-2 border-ink rounded-full transition-all duration-150 ${
                 active === f ? 'bg-ink text-paper' : 'bg-paper text-ink hover:bg-yellow'
               }`}
