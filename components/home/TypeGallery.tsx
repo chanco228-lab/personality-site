@@ -1,62 +1,65 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { personalityTypes } from '@/data/types';
+import { toDisplayCode } from '@/lib/typeCode';
 
 type Filter = 'すべて' | '陽キャ' | '無キャ' | '陰キャ';
 
-const TYPES = [
-  {
-    code: 'HLH+', name: '指揮官', tag: '陽キャ',
-    desc: '人を率いて、最後まで突き進む',
-    bg: '#F5E12B', color: '#0E0E0E', codeOpacity: '0.6',
-  },
-  {
-    code: 'HLH-', name: '革命家', tag: '陽キャ',
-    desc: '情熱の炎で世界を変えようとする',
-    bg: '#FF6B57', color: '#FFFFFF', codeOpacity: '0.8',
-  },
-  {
-    code: 'HMH-', name: '表現者', tag: '陽キャ',
-    desc: '感情をそのまま表現する天性の演者',
-    bg: '#2FC6B8', color: '#FFFFFF', codeOpacity: '0.8',
-  },
-  {
-    code: 'HHH+', name: '完璧主義者', tag: '無キャ',
-    desc: '理想の形を追い求め、妥協しない',
-    bg: '#B9A7F5', color: '#0E0E0E', codeOpacity: '0.6',
-  },
-  {
-    code: 'HHH-', name: '庇護者', tag: '無キャ',
-    desc: '心配しながら、それでも人のために動く',
-    bg: '#FFB8D6', color: '#0E0E0E', codeOpacity: '0.6',
-  },
-  {
-    code: 'MMM-', name: '現実主義者', tag: '無キャ',
-    desc: 'できることとできないことを冷静に見極める',
-    bg: '#9BDC5A', color: '#0E0E0E', codeOpacity: '0.6',
-  },
-  {
-    code: 'MHL-', name: '孤高の人', tag: '陰キャ',
-    desc: '群れず、自分の価値観だけを信じて生きる',
-    bg: '#FFFFFF', color: '#0E0E0E', codeOpacity: '0.6',
-  },
-  {
-    code: 'LHL-', name: '慎想家', tag: '陰キャ',
-    desc: '心配と疑念を抱えたまま、動けずにいる',
-    bg: '#0E0E0E', color: '#FFFFFF', codeOpacity: '1', codeColor: '#F5E12B',
-    descColor: '#E8E8E8',
-  },
-] as const;
+function getTag(ns: string, ha: string): '陽キャ' | '無キャ' | '陰キャ' {
+  if (ns === 'high' && ha !== 'high') return '陽キャ';
+  if (ha === 'high' && ns !== 'high') return '陰キャ';
+  return '無キャ';
+}
 
+// Key: `${ns}-${ha}-${p}` (p: 'high'=+, 'low'=-)
+// The 8 preview types are matched exactly to their original colors.
+const PALETTE: Record<string, { bg: string; color: string }> = {
+  'high-low-high':  { bg: '#F5E12B', color: '#0E0E0E' }, // HLx+ yellow   (指揮官)
+  'high-low-low':   { bg: '#FF6B57', color: '#FFFFFF' }, // HLx- coral    (革命家)
+  'high-mid-high':  { bg: '#FF9B57', color: '#0E0E0E' }, // HMx+ orange
+  'high-mid-low':   { bg: '#2FC6B8', color: '#FFFFFF' }, // HMx- teal     (表現者)
+  'high-high-high': { bg: '#B9A7F5', color: '#0E0E0E' }, // HHx+ purple   (完璧主義者)
+  'high-high-low':  { bg: '#FFB8D6', color: '#0E0E0E' }, // HHx- pink     (庇護者)
+  'mid-low-high':   { bg: '#C8F07A', color: '#0E0E0E' }, // MLx+ lime
+  'mid-low-low':    { bg: '#AADC5A', color: '#0E0E0E' }, // MLx- mid-green
+  'mid-mid-high':   { bg: '#A8D8EA', color: '#0E0E0E' }, // MMx+ sky
+  'mid-mid-low':    { bg: '#9BDC5A', color: '#0E0E0E' }, // MMx- green    (現実主義者)
+  'mid-high-high':  { bg: '#F0F0F0', color: '#0E0E0E' }, // MHx+ light-gray
+  'mid-high-low':   { bg: '#FFFFFF', color: '#0E0E0E' }, // MHx- white    (孤高の人)
+  'low-low-high':   { bg: '#1A9E8A', color: '#FFFFFF' }, // LLx+ dark-teal
+  'low-low-low':    { bg: '#57C7B8', color: '#FFFFFF' }, // LLx- mid-teal
+  'low-mid-high':   { bg: '#8B7355', color: '#FFFFFF' }, // LMx+ brown
+  'low-mid-low':    { bg: '#A8967E', color: '#0E0E0E' }, // LMx- tan
+  'low-high-high':  { bg: '#2A2A2A', color: '#FFFFFF' }, // LHx+ dark-gray
+  'low-high-low':   { bg: '#0E0E0E', color: '#FFFFFF' }, // LHx- black    (慎想家)
+};
+
+const ALL_TYPES = personalityTypes.map((t) => {
+  const paletteKey = `${t.ns}-${t.ha}-${t.p}`;
+  const { bg, color } = PALETTE[paletteKey] ?? { bg: '#EEEEEE', color: '#0E0E0E' };
+  return {
+    code: toDisplayCode(t.id),
+    name: t.name,
+    desc: t.catchphrase,
+    tag: getTag(t.ns, t.ha),
+    bg,
+    color,
+  };
+});
+
+const PREVIEW_CODES = new Set(['HLH+', 'HLH-', 'HMH-', 'HHH+', 'HHH-', 'MMM-', 'MHL-', 'LHL-']);
 const FILTERS: Filter[] = ['すべて', '陽キャ', '無キャ', '陰キャ'];
 
 export default function TypeGallery() {
   const [active, setActive] = useState<Filter>('すべて');
-  const visible = active === 'すべて' ? TYPES : TYPES.filter((t) => t.tag === active);
+  const [showAll, setShowAll] = useState(false);
+
+  const base = showAll ? ALL_TYPES : ALL_TYPES.filter((t) => PREVIEW_CODES.has(t.code));
+  const visible = active === 'すべて' ? base : base.filter((t) => t.tag === active);
 
   return (
-    <section className="relative z-10 max-w-[1200px] mx-auto px-6 py-[56px] md:py-[100px]">
+    <section id="type-gallery" className="relative z-10 max-w-[1200px] mx-auto px-6 py-[56px] md:py-[100px]">
       {/* Header */}
       <div className="flex justify-between items-end mb-12 gap-6 flex-wrap">
         <div>
@@ -90,8 +93,7 @@ export default function TypeGallery() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {visible.map((t) => {
           const isLight = t.color === '#FFFFFF';
-          const descColor = 'descColor' in t ? t.descColor : (isLight ? '#E8E8E8' : '#2A2A2A');
-          const codeColor = 'codeColor' in t ? t.codeColor : t.color;
+          const descColor = isLight ? 'rgba(255,255,255,0.75)' : '#2A2A2A';
           return (
             <div
               key={t.code}
@@ -107,16 +109,14 @@ export default function TypeGallery() {
               <div>
                 <div
                   className="font-mono text-[11px] font-bold tracking-[0.05em] mb-2"
-                  style={{ color: codeColor, opacity: parseFloat(t.codeOpacity) }}
+                  style={{ color: t.color, opacity: 0.7 }}
                 >
                   {t.code}
                 </div>
                 <div className="font-black text-[26px] tracking-tight leading-[1.1] mb-2">{t.name}</div>
                 <div className="text-[12px] leading-[1.5] mb-3" style={{ color: descColor }}>{t.desc}</div>
               </div>
-              <span
-                className="inline-block font-mono text-[10px] font-bold px-2 py-[3px] rounded bg-ink text-paper self-start"
-              >
+              <span className="inline-block font-mono text-[10px] font-bold px-2 py-[3px] rounded bg-ink text-paper self-start">
                 {t.tag}
               </span>
             </div>
@@ -125,16 +125,18 @@ export default function TypeGallery() {
       </div>
 
       {/* More CTA */}
-      <div className="text-center mt-10">
-        <Link
-          href="#"
-          aria-label="54タイプ全部を見る"
-          className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-7 py-[14px]"
-          style={{ fontSize: '16px' }}
-        >
-          54タイプ全部を見る <span>→</span>
-        </Link>
-      </div>
+      {!showAll && (
+        <div className="text-center mt-10">
+          <button
+            onClick={() => setShowAll(true)}
+            aria-label="54タイプ全部を見る"
+            className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-7 py-[14px]"
+            style={{ fontSize: '16px' }}
+          >
+            54タイプ全部を見る <span>→</span>
+          </button>
+        </div>
+      )}
     </section>
   );
 }
