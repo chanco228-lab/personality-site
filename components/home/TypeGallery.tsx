@@ -12,51 +12,114 @@ function getTag(ns: string, ha: string): '陽キャ' | '無キャ' | '陰キャ'
   return '無キャ';
 }
 
-// Key: `${ns}-${ha}-${p}` (p: 'high'=+, 'low'=-)
-// The 8 preview types are matched exactly to their original colors.
-const PALETTE: Record<string, { bg: string; color: string }> = {
-  'high-low-high':  { bg: '#F5E12B', color: '#0E0E0E' }, // HLx+ yellow   (指揮官)
-  'high-low-low':   { bg: '#FF6B57', color: '#FFFFFF' }, // HLx- coral    (革命家)
-  'high-mid-high':  { bg: '#FF9B57', color: '#0E0E0E' }, // HMx+ orange
-  'high-mid-low':   { bg: '#2FC6B8', color: '#FFFFFF' }, // HMx- teal     (表現者)
-  'high-high-high': { bg: '#B9A7F5', color: '#0E0E0E' }, // HHx+ purple   (完璧主義者)
-  'high-high-low':  { bg: '#FFB8D6', color: '#0E0E0E' }, // HHx- pink     (庇護者)
-  'mid-low-high':   { bg: '#C8F07A', color: '#0E0E0E' }, // MLx+ lime
-  'mid-low-low':    { bg: '#AADC5A', color: '#0E0E0E' }, // MLx- mid-green
-  'mid-mid-high':   { bg: '#A8D8EA', color: '#0E0E0E' }, // MMx+ sky
-  'mid-mid-low':    { bg: '#9BDC5A', color: '#0E0E0E' }, // MMx- green    (現実主義者)
-  'mid-high-high':  { bg: '#F0F0F0', color: '#0E0E0E' }, // MHx+ light-gray
-  'mid-high-low':   { bg: '#FFFFFF', color: '#0E0E0E' }, // MHx- white    (孤高の人)
-  'low-low-high':   { bg: '#1A9E8A', color: '#FFFFFF' }, // LLx+ dark-teal
-  'low-low-low':    { bg: '#57C7B8', color: '#FFFFFF' }, // LLx- mid-teal
-  'low-mid-high':   { bg: '#8B7355', color: '#FFFFFF' }, // LMx+ brown
-  'low-mid-low':    { bg: '#A8967E', color: '#0E0E0E' }, // LMx- tan
-  'low-high-high':  { bg: '#2A2A2A', color: '#FFFFFF' }, // LHx+ dark-gray
-  'low-high-low':   { bg: '#0E0E0E', color: '#FFFFFF' }, // LHx- black    (慎想家)
+// Linear interpolation between two hex colors
+function lerpHex(a: string, b: string, t: number): string {
+  const ch = (s: string, o: number) => parseInt(s.slice(o, o + 2), 16);
+  const r = Math.round(ch(a, 1) + (ch(b, 1) - ch(a, 1)) * t).toString(16).padStart(2, '0');
+  const g = Math.round(ch(a, 3) + (ch(b, 3) - ch(a, 3)) * t).toString(16).padStart(2, '0');
+  const bl = Math.round(ch(a, 5) + (ch(b, 5) - ch(a, 5)) * t).toString(16).padStart(2, '0');
+  return `#${r}${g}${bl}`;
+}
+
+// Multi-stop gradient: stops = ['#xxx', '#yyy', ...], t in [0, 1]
+function gradient(stops: string[], t: number): string {
+  if (t <= 0) return stops[0];
+  if (t >= 1) return stops[stops.length - 1];
+  const seg = t * (stops.length - 1);
+  const i = Math.floor(seg);
+  return lerpHex(stops[i], stops[i + 1], seg - i);
+}
+
+// Pick white or dark text based on background luminance
+function textColor(hex: string): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255 < 0.6 ? '#FFFFFF' : '#0E0E0E';
+}
+
+// ── Gradient stops per category ──────────────────────────────────────────────
+// 陽キャ: yellow → orange → coral → pink (warm spectrum)
+const YOIKYA_STOPS = ['#F5E12B', '#FFB800', '#FF7940', '#FF5068', '#FF66AA'];
+// 無キャ: lime → teal → sky → violet (cool spectrum)
+const MUIKYA_STOPS = ['#9BDC5A', '#2FC6B8', '#70AAEE', '#B9A7F5'];
+// 陰キャ: all black
+const IINKYA_BG = '#0E0E0E';
+
+// ── Preview: original hand-picked colors (8 cards) ───────────────────────────
+const PREVIEW_PALETTE: Record<string, { bg: string; color: string }> = {
+  'high-low-high':  { bg: '#F5E12B', color: '#0E0E0E' }, // HLH+ 指揮官
+  'high-low-low':   { bg: '#FF6B57', color: '#FFFFFF' }, // HLH- 革命家
+  'high-mid-low':   { bg: '#2FC6B8', color: '#FFFFFF' }, // HMH- 表現者
+  'high-high-high': { bg: '#B9A7F5', color: '#0E0E0E' }, // HHH+ 完璧主義者
+  'high-high-low':  { bg: '#FFB8D6', color: '#0E0E0E' }, // HHH- 庇護者
+  'mid-mid-low':    { bg: '#9BDC5A', color: '#0E0E0E' }, // MMM- 現実主義者
+  'mid-high-low':   { bg: '#FFFFFF', color: '#0E0E0E' }, // MHL- 孤高の人
+  'low-high-low':   { bg: '#0E0E0E', color: '#FFFFFF' }, // LHL- 慎想家
 };
 
-const ALL_TYPES = personalityTypes.map((t) => {
-  const paletteKey = `${t.ns}-${t.ha}-${t.p}`;
-  const { bg, color } = PALETTE[paletteKey] ?? { bg: '#EEEEEE', color: '#0E0E0E' };
-  return {
+type TypeCard = {
+  code: string; name: string; desc: string;
+  tag: '陽キャ' | '無キャ' | '陰キャ'; bg: string; color: string;
+};
+
+const PREVIEW_ORDER = ['HLH+', 'HLH-', 'HMH-', 'HHH+', 'HHH-', 'MMM-', 'MHL-', 'LHL-'];
+
+// ── Build card data at module level (no re-computation on render) ─────────────
+const { previewCards, allCards } = (() => {
+  const make = (t: typeof personalityTypes[0], bg: string, color: string): TypeCard => ({
     code: toDisplayCode(t.id),
     name: t.name,
     desc: t.catchphrase,
     tag: getTag(t.ns, t.ha),
     bg,
     color,
-  };
-});
+  });
 
-const PREVIEW_CODES = new Set(['HLH+', 'HLH-', 'HMH-', 'HHH+', 'HHH-', 'MMM-', 'MHL-', 'LHL-']);
+  // Preview: 8 hand-picked cards in specified order
+  const byCode = new Map<string, TypeCard>();
+  for (const t of personalityTypes) {
+    const code = toDisplayCode(t.id);
+    if (!PREVIEW_ORDER.includes(code)) continue;
+    const key = `${t.ns}-${t.ha}-${t.p}`;
+    const { bg, color } = PREVIEW_PALETTE[key] ?? { bg: '#EEEEEE', color: '#0E0E0E' };
+    byCode.set(code, make(t, bg, color));
+  }
+  const previewCards = PREVIEW_ORDER.map(c => byCode.get(c)!).filter(Boolean);
+
+  // Full view: sorted 陽キャ → 無キャ → 陰キャ, gradient colors within each group
+  const youki  = personalityTypes.filter(t => getTag(t.ns, t.ha) === '陽キャ');
+  const muki   = personalityTypes.filter(t => getTag(t.ns, t.ha) === '無キャ');
+  const iinkya = personalityTypes.filter(t => getTag(t.ns, t.ha) === '陰キャ');
+
+  const allCards: TypeCard[] = [
+    ...youki.map((t, i) => {
+      const bg = gradient(YOIKYA_STOPS, i / Math.max(youki.length - 1, 1));
+      return make(t, bg, textColor(bg));
+    }),
+    ...muki.map((t, i) => {
+      const bg = gradient(MUIKYA_STOPS, i / Math.max(muki.length - 1, 1));
+      return make(t, bg, textColor(bg));
+    }),
+    ...iinkya.map(t => make(t, IINKYA_BG, '#FFFFFF')),
+  ];
+
+  return { previewCards, allCards };
+})();
+
 const FILTERS: Filter[] = ['すべて', '陽キャ', '無キャ', '陰キャ'];
 
 export default function TypeGallery() {
   const [active, setActive] = useState<Filter>('すべて');
   const [showAll, setShowAll] = useState(false);
 
-  const base = showAll ? ALL_TYPES : ALL_TYPES.filter((t) => PREVIEW_CODES.has(t.code));
-  const visible = active === 'すべて' ? base : base.filter((t) => t.tag === active);
+  const base = showAll ? allCards : previewCards;
+  const visible = active === 'すべて' ? base : base.filter(t => t.tag === active);
+
+  function handleClose() {
+    setShowAll(false);
+    setActive('すべて');
+  }
 
   return (
     <section id="type-gallery" className="relative z-10 max-w-[1200px] mx-auto px-6 py-[56px] md:py-[100px]">
@@ -93,24 +156,17 @@ export default function TypeGallery() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
         {visible.map((t) => {
           const isLight = t.color === '#FFFFFF';
-          const descColor = isLight ? 'rgba(255,255,255,0.75)' : '#2A2A2A';
+          const descColor = isLight ? 'rgba(255,255,255,0.7)' : '#2A2A2A';
           return (
             <div
               key={t.code}
               className="relative border-2 border-ink rounded-[20px] p-5 cursor-pointer transition-all duration-200 hover:-translate-x-[3px] hover:-translate-y-[3px] min-h-[180px] flex flex-col justify-between overflow-hidden"
-              style={{
-                background: t.bg,
-                color: t.color,
-                boxShadow: '4px 4px 0 #0E0E0E',
-              }}
+              style={{ background: t.bg, color: t.color, boxShadow: '4px 4px 0 #0E0E0E' }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = '7px 7px 0 #0E0E0E'; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.boxShadow = '4px 4px 0 #0E0E0E'; }}
             >
               <div>
-                <div
-                  className="font-mono text-[11px] font-bold tracking-[0.05em] mb-2"
-                  style={{ color: t.color, opacity: 0.7 }}
-                >
+                <div className="font-mono text-[11px] font-bold tracking-[0.05em] mb-2" style={{ color: t.color, opacity: 0.7 }}>
                   {t.code}
                 </div>
                 <div className="font-black text-[26px] tracking-tight leading-[1.1] mb-2">{t.name}</div>
@@ -124,19 +180,25 @@ export default function TypeGallery() {
         })}
       </div>
 
-      {/* More CTA */}
-      {!showAll && (
-        <div className="text-center mt-10">
+      {/* CTA / Close */}
+      <div className="text-center mt-10">
+        {showAll ? (
+          <button
+            onClick={handleClose}
+            className="inline-flex items-center gap-2 font-display font-bold text-[15px] px-7 py-[14px] border-2 border-ink rounded-full bg-paper text-ink hover:bg-yellow transition-colors duration-150"
+          >
+            ↑ 閉じる
+          </button>
+        ) : (
           <button
             onClick={() => setShowAll(true)}
-            aria-label="54タイプ全部を見る"
             className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-7 py-[14px]"
             style={{ fontSize: '16px' }}
           >
             54タイプ全部を見る <span>→</span>
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </section>
   );
 }
