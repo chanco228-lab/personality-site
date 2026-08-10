@@ -118,11 +118,26 @@ export default function TypeGallery() {
   const base = showAll ? allCards : previewCards;
   const visible = active === 'すべて' ? base : base.filter(t => t.tag === active);
 
+  // 閉じる: 先に状態を折りたたんでからスクロール（layout変化前にscrollIntoViewするとページ底部に飛ぶバグを防ぐ）
   function handleClose() {
-    document.getElementById('type-gallery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     setShowAll(false);
-    setActive('すべて');
+    setTimeout(() => {
+      document.getElementById('type-gallery')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 50);
   }
+
+  // 陽キャ/陰キャ → 自動展開。無キャ/すべて → プレビューに戻す
+  function handleFilter(f: Filter) {
+    setActive(f);
+    if (f === '陽キャ' || f === '陰キャ') {
+      setShowAll(true);
+    } else {
+      setShowAll(false);
+    }
+  }
+
+  // すべて・無キャのみ CTA/閉じるボタンを表示（陽キャ・陰キャは自動展開なので不要）
+  const showCta = active === 'すべて' || active === '無キャ';
 
   return (
     <section id="type-gallery" className="relative z-10 max-w-[1200px] mx-auto px-6 py-[56px] md:py-[100px]">
@@ -144,7 +159,7 @@ export default function TypeGallery() {
           {FILTERS.map((f) => (
             <button
               key={f}
-              onClick={() => { setActive(f); if (f !== 'すべて') setShowAll(true); }}
+              onClick={() => handleFilter(f)}
               className={`font-display font-bold text-[13px] px-4 py-2 border-2 border-ink rounded-full transition-all duration-150 ${
                 active === f ? 'bg-ink text-paper' : 'bg-paper text-ink hover:bg-yellow'
               }`}
@@ -183,25 +198,27 @@ export default function TypeGallery() {
         })}
       </div>
 
-      {/* CTA / Close */}
-      <div className="text-center mt-10">
-        {showAll ? (
-          <button
-            onClick={handleClose}
-            className="inline-flex items-center gap-2 font-display font-bold text-[15px] px-7 py-[14px] border-2 border-ink rounded-full bg-paper text-ink hover:bg-yellow transition-colors duration-150"
-          >
-            ↑ 閉じる
-          </button>
-        ) : (
-          <button
-            onClick={() => setShowAll(true)}
-            className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-7 py-[14px]"
-            style={{ fontSize: '16px' }}
-          >
-            54タイプ全部を見る <span>→</span>
-          </button>
-        )}
-      </div>
+      {/* CTA / Close（すべて・無キャのみ） */}
+      {showCta && (
+        <div className="text-center mt-10">
+          {showAll ? (
+            <button
+              onClick={handleClose}
+              className="inline-flex items-center gap-2 font-display font-bold text-[15px] px-7 py-[14px] border-2 border-ink rounded-full bg-paper text-ink hover:bg-yellow transition-colors duration-150"
+            >
+              ↑ 閉じる
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAll(true)}
+              className="hero-cta inline-flex items-center gap-[10px] font-display font-black bg-ink text-paper border-2 border-ink rounded-full px-7 py-[14px]"
+              style={{ fontSize: '16px' }}
+            >
+              54タイプ全部を見る <span>→</span>
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }
