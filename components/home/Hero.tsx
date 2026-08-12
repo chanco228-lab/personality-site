@@ -21,7 +21,7 @@ export default function Hero() {
 
           <h1
             className="font-black tracking-[-0.03em] mb-6"
-            style={{ fontSize: 'clamp(26px, 8vw, 72px)', lineHeight: 1.1 }}
+            style={{ fontSize: 'clamp(38px, 10vw, 72px)', lineHeight: 1.1 }}
           >
             <span className="block">21問で分かる、</span>
             <span className="block">

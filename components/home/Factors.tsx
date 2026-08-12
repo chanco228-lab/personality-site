@@ -42,10 +42,12 @@ export default function Factors() {
               key={f.code}
               className="bg-paper text-ink rounded-[16px] p-5 border-2 border-paper transition-transform duration-200 hover:-translate-y-1"
             >
-              <span className={`font-mono font-bold text-[12px] px-2 py-[3px] rounded-[6px] inline-block mb-[10px] ${f.badgeCls}`}>
-                {f.code}
-              </span>
-              <div className="font-black text-[17px] mb-1 tracking-tight">{f.name}</div>
+              <div className="flex items-center gap-3 md:flex-col md:items-start md:gap-0 mb-1">
+                <span className={`font-mono font-bold text-[12px] px-2 py-[3px] rounded-[6px] inline-block flex-shrink-0 md:mb-[10px] ${f.badgeCls}`}>
+                  {f.code}
+                </span>
+                <div className="font-black text-[17px] tracking-tight md:mb-1">{f.name}</div>
+              </div>
               <div className="text-[12px] leading-[1.5]" style={{ color: '#2A2A2A' }}>{f.desc}</div>
             </div>
           ))}

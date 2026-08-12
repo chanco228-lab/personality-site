@@ -52,14 +52,16 @@ export default function HowItWorks() {
             <span className={`font-mono text-[14px] font-bold inline-block px-[10px] py-1 border-2 border-ink rounded-lg mb-5 ${s.numCls}`}>
               {s.num}
             </span>
-            <div
-              className={`w-16 h-16 flex items-center justify-center border-2 border-ink rounded-[16px] mb-[18px] text-[32px] ${s.iconCls}`}
-              aria-hidden="true"
-            >
-              {s.icon}
+            <div className="flex items-center gap-4 mb-3 md:flex-col md:items-start md:gap-[18px] md:mb-2">
+              <div
+                className={`w-16 h-16 flex-shrink-0 flex items-center justify-center border-2 border-ink rounded-[16px] text-[32px] ${s.iconCls}`}
+                aria-hidden="true"
+              >
+                {s.icon}
+              </div>
+              <div className="text-[22px] font-black tracking-tight">{s.title}</div>
             </div>
-            <div className="text-[22px] font-black mb-2 tracking-tight">{s.title}</div>
-            <div className="text-[14px] leading-[1.6]" style={{ color: '#2A2A2A' }}>{s.desc}</div>
+            <div className="text-[14px] leading-[1.6] md:mt-0" style={{ color: '#2A2A2A' }}>{s.desc}</div>
           </div>
         ))}
       </div>
