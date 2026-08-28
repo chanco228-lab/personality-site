@@ -64,6 +64,20 @@ export function calculateIntrovertScoreV3(scores: {
   return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
 }
 
+// v4スコアをv3スケール(±9)にノーマライズ
+// NS/HA/RD/P=8問(max±24), SD/CO/ST=6問(max±18)
+export function normalizeScoresV4(scores: FactorScores): FactorScores {
+  return {
+    NS: Math.round(scores.NS * 9 / 24),
+    HA: Math.round(scores.HA * 9 / 24),
+    RD: Math.round(scores.RD * 9 / 24),
+    P:  Math.round(scores.P  * 9 / 24),
+    SD: Math.round(scores.SD * 9 / 18),
+    CO: Math.round(scores.CO * 9 / 18),
+    ST: Math.round(scores.ST * 9 / 18),
+  };
+}
+
 export function calculateImpulsivityScoreV3(scores: {
   ns: number; ha: number; p: number; sd: number;
 }): number {
@@ -72,3 +86,4 @@ export function calculateImpulsivityScoreV3(scores: {
   const max =  45;
   return Math.min(100, Math.max(0, Math.round((raw - min) / (max - min) * 100)));
 }
+

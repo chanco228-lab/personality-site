@@ -6,6 +6,7 @@ import { getV4Questions } from '@/data/questionsV4';
 import { Question } from '@/data/types';
 import {
   calculateScoresV3,
+  normalizeScoresV4,
   determineTypeV3,
   calculateIntrovertScoreV3,
   calculateImpulsivityScoreV3,
@@ -86,7 +87,8 @@ export default function QuizV4() {
         questionReversed[q.id] = q.reversed;
       });
 
-      const scores = calculateScoresV3(newAnswers, questionFactors, questionReversed);
+      const rawScores = calculateScoresV3(newAnswers, questionFactors, questionReversed);
+      const scores = normalizeScoresV4(rawScores);
       const typeId = determineTypeV3(scores);
       localStorage.setItem(RESULTS_KEY, JSON.stringify({ scores, typeId }));
       localStorage.setItem(VERSION_KEY, 'v3');
