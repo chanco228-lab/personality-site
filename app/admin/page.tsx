@@ -794,13 +794,12 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
                 } ${isLow ? 'bg-red-400' : 'bg-teal-400'}`}
                 style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
               />
-              {step % 10 === 0 || step === 1 || step === total ? (
-                <span className={`leading-none font-medium ${isSelected ? 'text-slate-800' : 'text-slate-500'}`} style={{ fontSize: '9px' }}>
-                  {step}
-                </span>
-              ) : (
-                <span style={{ fontSize: '9px', visibility: 'hidden' }}>.</span>
-              )}
+              <span
+                className={`leading-none font-medium ${isSelected ? 'text-slate-800' : 'text-slate-500'} ${step % 10 === 0 || step === 1 || step === total ? '' : 'invisible'}`}
+                style={{ fontSize: '9px' }}
+              >
+                {step}
+              </span>
             </div>
           );
         })}
