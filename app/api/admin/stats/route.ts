@@ -15,10 +15,38 @@ export async function GET(req: NextRequest) {
   const version = req.nextUrl.searchParams.get('version') ?? 'v2';
   const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000).toISOString();
 
+  if (version === 'v4') {
+    return getV4Stats(since);
+  }
   if (version === 'v3') {
     return getV3Stats(since, days);
   }
   return getV2Stats(since, days);
+}
+
+async function getV4Stats(since: string) {
+  const { data: logs, error } = await supabaseAdmin
+    .from('logs')
+    .select('event_name, step, created_at')
+    .gte('created_at', since)
+    .limit(100000);
+
+  if (error || !logs) {
+    return NextResponse.json({ error: 'Failed to fetch logs' }, { status: 500 });
+  }
+
+  const starts = logs.filter((l) => l.event_name === 'quiz_v4_start').length;
+  const completes = logs.filter((l) => l.event_name === 'quiz_v4_complete').length;
+
+  const stepCounts: Record<string, number> = {};
+  logs
+    .filter((l) => l.event_name === 'quiz_v4_step' && l.step != null)
+    .forEach((l) => {
+      const key = String(l.step);
+      stepCounts[key] = (stepCounts[key] ?? 0) + 1;
+    });
+
+  return NextResponse.json({ starts, completes, stepCounts });
 }
 
 async function getV2Stats(since: string, days: number) {

@@ -60,9 +60,10 @@ export default function AdminPage() {
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState(false);
   const [days, setDays] = useState<7 | 30>(7);
-  const version = 'v3';
+  const [version, setVersion] = useState<'v3' | 'v4'>('v3');
   const [tab, setTab] = useState<'stats' | 'quality'>('stats');
   const [stats, setStats] = useState<Stats | null>(null);
+  const [v4Stats, setV4Stats] = useState<{ starts: number; completes: number; stepCounts: Record<string, number> } | null>(null);
   const [qualityData, setQualityData] = useState<QualityData | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -82,7 +83,12 @@ export default function AdminPage() {
         headers: { Authorization: `Bearer ${pw}` },
       });
       if (!res.ok) return false;
-      setStats(await res.json());
+      const json = await res.json();
+      if (ver === 'v4') {
+        setV4Stats(json);
+      } else {
+        setStats(json);
+      }
       return true;
     } finally {
       setLoading(false);
@@ -92,7 +98,7 @@ export default function AdminPage() {
   useEffect(() => {
     const saved = sessionStorage.getItem(PASS_KEY);
     if (!saved) return;
-    fetchStats(saved, 7, version).then((ok) => { if (ok) setAuthed(true); });
+    fetchStats(saved, 7, 'v3').then((ok) => { if (ok) setAuthed(true); });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -100,8 +106,13 @@ export default function AdminPage() {
     if (!authed) return;
     const saved = sessionStorage.getItem(PASS_KEY);
     if (!saved) return;
-    if (tab === 'quality') fetchQuality(saved);
-    else fetchStats(saved, days, version);
+    if (version === 'v4') {
+      fetchStats(saved, days, 'v4');
+    } else if (tab === 'quality') {
+      fetchQuality(saved);
+    } else {
+      fetchStats(saved, days, version);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [days, version, authed, tab]);
 
@@ -181,20 +192,36 @@ export default function AdminPage() {
       <header className="bg-white border-b border-slate-200 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <h1 className="text-lg font-bold text-slate-800">管理画面</h1>
-          {/* タブ */}
+          {/* バージョン切り替え */}
           <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
-            {(['stats', 'quality'] as const).map((t) => (
+            {(['v3', 'v4'] as const).map((v) => (
               <button
-                key={t}
-                onClick={() => setTab(t)}
+                key={v}
+                onClick={() => setVersion(v)}
                 className={`px-4 py-1 rounded-md text-sm font-bold transition-colors ${
-                  tab === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  version === v ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
                 }`}
               >
-                {t === 'stats' ? '統計' : '品質'}
+                {v === 'v4' ? 'v4(50問)' : 'v3(21問)'}
               </button>
             ))}
           </div>
+          {/* タブ（v3のみ） */}
+          {version === 'v3' && (
+            <div className="flex gap-1 bg-slate-100 rounded-lg p-1">
+              {(['stats', 'quality'] as const).map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`px-4 py-1 rounded-md text-sm font-bold transition-colors ${
+                    tab === t ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  {t === 'stats' ? '統計' : '品質'}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-3">
           <button
@@ -243,8 +270,56 @@ export default function AdminPage() {
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
-        {/* 品質タブ */}
-        {tab === 'quality' && (
+        {/* v4: 離脱率のみ */}
+        {version === 'v4' && (
+          <>
+            {loading && <p className="text-slate-500 text-sm">読み込み中...</p>}
+            {v4Stats && (
+              <>
+                {/* KPI */}
+                <div className="grid grid-cols-3 gap-4">
+                  <KpiCard label="診断開始" value={v4Stats.starts} unit="人" />
+                  <KpiCard
+                    label="診断完了"
+                    value={v4Stats.completes}
+                    unit="人"
+                    sub={`完了率 ${v4Stats.starts > 0 ? Math.round((v4Stats.completes / v4Stats.starts) * 100) : 0}%`}
+                    color={
+                      v4Stats.starts > 0 && (v4Stats.completes / v4Stats.starts) >= 0.7 ? 'teal'
+                      : v4Stats.starts > 0 && (v4Stats.completes / v4Stats.starts) >= 0.5 ? 'amber'
+                      : 'red'
+                    }
+                  />
+                  <KpiCard
+                    label="離脱率"
+                    value={v4Stats.starts > 0 ? Math.round((1 - v4Stats.completes / v4Stats.starts) * 100) : 0}
+                    unit="%"
+                    color={
+                      v4Stats.starts > 0 && (1 - v4Stats.completes / v4Stats.starts) <= 0.3 ? 'teal'
+                      : v4Stats.starts > 0 && (1 - v4Stats.completes / v4Stats.starts) <= 0.5 ? 'amber'
+                      : 'red'
+                    }
+                  />
+                </div>
+
+                {/* 設問ごとの通過者数 */}
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h2 className="text-base font-bold text-slate-800 mb-1">設問ごとの通過者数（50問）</h2>
+                  <p className="text-sm text-slate-500 mb-6">
+                    最多比70%未満の設問（赤）で離脱が多い可能性があります
+                  </p>
+                  <V4StepChart stepCounts={v4Stats.stepCounts} total={50} />
+                </div>
+              </>
+            )}
+            {!loading && !v4Stats && (
+              <p className="text-slate-400 text-sm">データなし</p>
+            )}
+          </>
+        )}
+
+        {/* 品質タブ（v3のみ） */}
+        {version === 'v3' && tab === 'quality' && (
           <>
             {!qualityData ? (
               <p className="text-slate-500 text-sm">読み込み中...</p>
@@ -310,7 +385,7 @@ export default function AdminPage() {
           </>
         )}
 
-        {tab === 'stats' && (<>
+        {version === 'v3' && tab === 'stats' && (<>
 
         {/* KPIカード */}
         {stats && (
@@ -663,6 +738,56 @@ export default function AdminPage() {
 
       </main>
     </div>
+  );
+}
+
+function V4StepChart({ stepCounts, total }: { stepCounts: Record<string, number>; total: number }) {
+  const entries = Array.from({ length: total }, (_, i) => ({
+    step: i + 1,
+    count: stepCounts[String(i + 1)] ?? 0,
+  }));
+  const maxCount = Math.max(...entries.map((e) => e.count), 1);
+
+  return (
+    <>
+      <div className="flex items-end gap-[2px]" style={{ height: '200px' }}>
+        {entries.map(({ step, count }) => {
+          const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+          const isLow = pct < 70 && count > 0;
+          return (
+            <div
+              key={step}
+              className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full group relative"
+            >
+              <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] rounded px-1.5 py-0.5 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                Q{step}: {count}人
+              </div>
+              <div
+                className={`w-full rounded-t-sm transition-all duration-500 ${
+                  isLow ? 'bg-red-400' : 'bg-teal-400'
+                }`}
+                style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
+              />
+              {step % 10 === 0 || step === 1 || step === total ? (
+                <span className="text-slate-500 leading-none font-medium" style={{ fontSize: '9px' }}>
+                  {step}
+                </span>
+              ) : (
+                <span style={{ fontSize: '9px', visibility: 'hidden' }}>.</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex gap-6 text-sm text-slate-600">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満（離脱疑い）
+        </span>
+      </div>
+    </>
   );
 }
 
