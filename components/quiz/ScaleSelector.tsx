@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 
 const CIRCLES = [
-  { value:  3, color: '#2FC6B8', sizeD: 64, sizeM: 48, label: '最大同意' },
-  { value:  2, color: '#52D0C4', sizeD: 52, sizeM: 40, label: '強い同意' },
-  { value:  1, color: '#7FE0D6', sizeD: 40, sizeM: 32, label: '弱い同意' },
+  { value:  3, color: '#F59E0B', sizeD: 64, sizeM: 48, label: '最大同意' },
+  { value:  2, color: '#FBBF24', sizeD: 52, sizeM: 40, label: '強い同意' },
+  { value:  1, color: '#FCD34D', sizeD: 40, sizeM: 32, label: '弱い同意' },
   { value:  0, color: '#BDBDBD', sizeD: 28, sizeM: 20, label: '中立' },
-  { value: -1, color: '#D4BEEB', sizeD: 40, sizeM: 32, label: '弱い不同意' },
-  { value: -2, color: '#B9A7F5', sizeD: 52, sizeM: 40, label: '強い不同意' },
-  { value: -3, color: '#9580D6', sizeD: 64, sizeM: 48, label: '最大不同意' },
+  { value: -1, color: '#A5B4FC', sizeD: 40, sizeM: 32, label: '弱い不同意' },
+  { value: -2, color: '#818CF8', sizeD: 52, sizeM: 40, label: '強い不同意' },
+  { value: -3, color: '#6366F1', sizeD: 64, sizeM: 48, label: '最大不同意' },
 ];
 
 type Props = {
@@ -102,8 +102,8 @@ export default function ScaleSelector({ onAnswer, questionKey }: Props) {
     <div className="flex flex-col items-center gap-4 w-full select-none">
       {/* Mobile: labels above circles */}
       <div className="flex sm:hidden items-center justify-between w-full px-1">
-        <span className="text-[12px] font-bold" style={{ color: '#2FC6B8' }}>そう思う</span>
-        <span className="text-[12px] font-bold" style={{ color: '#9580D6' }}>そう思わない</span>
+        <span className="text-[12px] font-bold" style={{ color: '#F59E0B' }}>そう思う</span>
+        <span className="text-[12px] font-bold" style={{ color: '#6366F1' }}>そう思わない</span>
       </div>
 
       {/* Circles row (mobile: centered, desktop: with side labels) */}
@@ -111,7 +111,7 @@ export default function ScaleSelector({ onAnswer, questionKey }: Props) {
         {/* Desktop left label */}
         <span
           className="hidden sm:block text-[14px] font-bold shrink-0 text-right"
-          style={{ color: '#2FC6B8', minWidth: 52 }}
+          style={{ color: '#F59E0B', minWidth: 52 }}
         >
           そう思う
         </span>
@@ -123,7 +123,7 @@ export default function ScaleSelector({ onAnswer, questionKey }: Props) {
         {/* Desktop right label */}
         <span
           className="hidden sm:block text-[14px] font-bold shrink-0"
-          style={{ color: '#9580D6', minWidth: 60 }}
+          style={{ color: '#6366F1', minWidth: 60 }}
         >
           そう思わない
         </span>
