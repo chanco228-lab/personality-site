@@ -578,49 +578,14 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* 設問ごとのグラフ */}
+        {/* 設問別 離脱分析 */}
         {stats && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
-            <h2 className="text-base font-bold text-slate-800 mb-1">設問ごとの回答者数</h2>
-            <p className="text-sm text-slate-600 mb-6">
-              最多比70%未満の設問（赤）で離脱が多い可能性があります
+            <h2 className="text-base font-bold text-slate-800 mb-1">設問別 離脱分析</h2>
+            <p className="text-sm text-slate-500 mb-6">
+              Q1の回答者数を100%として表示。棒が短くなるほど、その設問までに離脱した人が多い
             </p>
-
-            <div className="flex items-end gap-1" style={{ height: '200px' }}>
-              {stepEntries.map(({ step, count }) => {
-                const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-                const isLow = pct < 70 && count > 0;
-                return (
-                  <div
-                    key={step}
-                    className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full"
-                  >
-                    <span className="text-slate-600 leading-none" style={{ fontSize: '10px' }}>
-                      {count > 0 ? count : ''}
-                    </span>
-                    <div
-                      className={`w-full rounded-t-sm transition-all duration-500 ${
-                        isLow ? 'bg-red-400' : 'bg-teal-400'
-                      }`}
-                      style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
-                      title={`Q${step}: ${count}人`}
-                    />
-                    <span className="text-slate-600 leading-none font-medium" style={{ fontSize: '10px' }}>
-                      {step}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-
-            <div className="mt-4 flex gap-6 text-sm text-slate-600">
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
-              </span>
-              <span className="flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満
-              </span>
-            </div>
+            <AttritionChart stepCounts={stats.stepCounts} />
           </div>
         )}
 
@@ -935,6 +900,53 @@ function EmailConvCard({
         登 {emails}人 / 到 {emailFormViewed}人 / 完 {completes}人
       </p>
     </div>
+  );
+}
+
+function AttritionChart({ stepCounts }: { stepCounts: Record<string, number> }) {
+  const entries = Array.from({ length: 21 }, (_, i) => ({
+    step: i + 1,
+    count: stepCounts[String(i + 1)] ?? 0,
+  }));
+  const q1Count = entries[0].count || 1;
+
+  return (
+    <>
+      <div className="flex items-end gap-1" style={{ height: '200px' }}>
+        {entries.map(({ step, count }) => {
+          const pct = Math.round((count / q1Count) * 100);
+          const heightPct = (count / q1Count) * 100;
+          const color = pct >= 80 ? 'bg-teal-400' : pct >= 60 ? 'bg-amber-400' : 'bg-red-400';
+          return (
+            <div key={step} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
+              <span className="text-slate-600 leading-none" style={{ fontSize: '9px' }}>
+                {count > 0 ? `${pct}%` : ''}
+              </span>
+              <div
+                className={`w-full rounded-t-sm transition-all duration-500 ${color}`}
+                style={{ height: `${heightPct}%`, minHeight: count > 0 ? '4px' : '0' }}
+                title={`Q${step}: ${count}人 (${pct}%)`}
+              />
+              <span className="text-slate-600 leading-none font-medium" style={{ fontSize: '10px' }}>
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex gap-6 text-sm text-slate-600">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 80%以上
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-amber-400 inline-block" /> 60〜79%
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 60%未満
+        </span>
+        <span className="text-xs text-slate-400 ml-auto">Q1を100%として表示</span>
+      </div>
+    </>
   );
 }
 
