@@ -310,6 +310,15 @@ export default function AdminPage() {
                   </p>
                   <V4StepChart stepCounts={v4Stats.stepCounts} total={50} starts={v4Stats.starts} />
                 </div>
+
+                {/* 設問別 離脱分析 */}
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                  <h2 className="text-base font-bold text-slate-800 mb-1">設問別 離脱分析</h2>
+                  <p className="text-sm text-slate-500 mb-6">
+                    Q1の通過者数を100%として表示。線が下がるほど、その設問までに離脱した人が多い
+                  </p>
+                  <AttritionChart stepCounts={v4Stats.stepCounts} total={50} />
+                </div>
               </>
             )}
             {!loading && !v4Stats && (
@@ -594,7 +603,7 @@ export default function AdminPage() {
           <div className="bg-white rounded-2xl shadow-sm p-6">
             <h2 className="text-base font-bold text-slate-800 mb-1">設問別 離脱分析</h2>
             <p className="text-sm text-slate-500 mb-6">
-              Q1の回答者数を100%として表示。棒が短くなるほど、その設問までに離脱した人が多い
+              Q1の通過者数を100%として表示。線が下がるほど、その設問までに離脱した人が多い
             </p>
             <AttritionChart stepCounts={stats.stepCounts} />
           </div>
@@ -807,6 +816,7 @@ function V3StepChart({ stepCounts }: { stepCounts: Record<string, number> }) {
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
+  const maxCount = Math.max(...entries.map((e) => e.count), 1);
   const q1Count = Math.max(entries[0].count, 1);
 
   return (
@@ -830,15 +840,38 @@ function V3StepChart({ stepCounts }: { stepCounts: Record<string, number> }) {
           </div>
         </div>
       )}
-      <StepLineChart entries={entries} selected={selected} onSelect={setSelected} />
+      <div className="flex items-end gap-1" style={{ height: '200px' }}>
+        {entries.map(({ step, count }) => {
+          const pct = (count / maxCount) * 100;
+          const isLow = pct < 70 && count > 0;
+          const isSelected = selected?.step === step;
+          return (
+            <div
+              key={step}
+              className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full cursor-pointer"
+              onClick={() => setSelected((prev) => (prev?.step === step ? null : { step, count }))}
+            >
+              <div
+                className={`w-full rounded-t-sm transition-all duration-300 ${
+                  isSelected ? 'opacity-100 ring-1 ring-white' : 'opacity-90'
+                } ${isLow ? 'bg-red-400' : 'bg-teal-400'}`}
+                style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
+              />
+              <span className="leading-none font-medium text-slate-500" style={{ fontSize: '10px' }}>
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-red-400 inline-block" /> 70%未満（離脱疑い）
+          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満（離脱疑い）
         </span>
-        <span className="text-xs text-slate-400 ml-auto">点をタップで詳細表示</span>
+        <span className="text-xs text-slate-400 ml-auto">バーをタップで詳細表示</span>
       </div>
     </>
   );
@@ -851,6 +884,7 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
+  const maxCount = Math.max(...entries.map((e) => e.count), 1);
   const q1Count = Math.max(entries[0].count, 1);
 
   return (
@@ -874,15 +908,41 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
           </div>
         </div>
       )}
-      <StepLineChart entries={entries} selected={selected} onSelect={setSelected} />
+      <div className="flex items-end gap-[2px]" style={{ height: '200px' }}>
+        {entries.map(({ step, count }) => {
+          const pct = (count / maxCount) * 100;
+          const isLow = pct < 70 && count > 0;
+          const isSelected = selected?.step === step;
+          return (
+            <div
+              key={step}
+              className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full relative cursor-pointer"
+              onClick={() => setSelected((prev) => (prev?.step === step ? null : { step, count }))}
+            >
+              <div
+                className={`w-full rounded-t-sm transition-all duration-300 ${
+                  isSelected ? 'opacity-100 ring-1 ring-white' : 'opacity-90'
+                } ${isLow ? 'bg-red-400' : 'bg-teal-400'}`}
+                style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
+              />
+              <span
+                className={`leading-none font-medium ${isSelected ? 'text-slate-800' : 'text-slate-500'} ${step % 10 === 0 || step === 1 || step === total ? '' : 'invisible'}`}
+                style={{ fontSize: '9px' }}
+              >
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-red-400 inline-block" /> 70%未満（離脱疑い）
+          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満（離脱疑い）
         </span>
-        <span className="text-xs text-slate-400 ml-auto">点をタップで詳細表示</span>
+        <span className="text-xs text-slate-400 ml-auto">バーをタップで詳細表示</span>
       </div>
     </>
   );
@@ -1009,48 +1069,45 @@ function EmailConvCard({
   );
 }
 
-function AttritionChart({ stepCounts }: { stepCounts: Record<string, number> }) {
-  const entries = Array.from({ length: 21 }, (_, i) => ({
+function AttritionChart({ stepCounts, total = 21 }: { stepCounts: Record<string, number>; total?: number }) {
+  const [selected, setSelected] = useState<{ step: number; count: number } | null>(null);
+
+  const entries = Array.from({ length: total }, (_, i) => ({
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
-  const q1Count = entries[0].count || 1;
+  const q1Count = Math.max(entries[0].count, 1);
 
   return (
     <>
-      <div className="flex items-end gap-1" style={{ height: '200px' }}>
-        {entries.map(({ step, count }) => {
-          const pct = Math.round((count / q1Count) * 100);
-          const heightPct = (count / q1Count) * 100;
-          const color = pct >= 80 ? 'bg-teal-400' : pct >= 60 ? 'bg-amber-400' : 'bg-red-400';
-          return (
-            <div key={step} className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full">
-              <span className="text-slate-600 leading-none" style={{ fontSize: '9px' }}>
-                {count > 0 ? `${pct}%` : ''}
-              </span>
-              <div
-                className={`w-full rounded-t-sm transition-all duration-500 ${color}`}
-                style={{ height: `${heightPct}%`, minHeight: count > 0 ? '4px' : '0' }}
-                title={`Q${step}: ${count}人 (${pct}%)`}
-              />
-              <span className="text-slate-600 leading-none font-medium" style={{ fontSize: '10px' }}>
-                {step}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      {selected && (
+        <div className="mb-4 bg-slate-800 text-white rounded-xl px-5 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 mb-0.5">Q{selected.step}問目</p>
+            <p className="text-2xl font-extrabold">{selected.count.toLocaleString()}<span className="text-sm font-semibold ml-1">人通過</span></p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-400 mb-0.5">Q1比</p>
+            <p className={`text-2xl font-extrabold ${
+              selected.count / q1Count >= 0.8 ? 'text-teal-400'
+              : selected.count / q1Count >= 0.6 ? 'text-amber-400'
+              : 'text-red-400'
+            }`}>
+              {Math.round((selected.count / q1Count) * 100)}<span className="text-sm font-semibold ml-0.5">%</span>
+            </p>
+            <p className="text-xs text-slate-400">Q1 {entries[0].count.toLocaleString()}人</p>
+          </div>
+        </div>
+      )}
+      <StepLineChart entries={entries} selected={selected} onSelect={setSelected} />
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 80%以上
+          <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-amber-400 inline-block" /> 60〜79%
+          <span className="w-3 h-3 rounded-full bg-red-400 inline-block" /> 70%未満（離脱疑い）
         </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 60%未満
-        </span>
-        <span className="text-xs text-slate-400 ml-auto">Q1を100%として表示</span>
+        <span className="text-xs text-slate-400 ml-auto">Q1を100%として表示 / 点をタップで詳細表示</span>
       </div>
     </>
   );
