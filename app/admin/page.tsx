@@ -585,7 +585,7 @@ export default function AdminPage() {
             <p className="text-sm text-slate-500 mb-6">
               最多比70%未満の設問（赤）で離脱が多い可能性があります
             </p>
-            <V3StepChart stepCounts={stats.stepCounts} starts={stats.starts} />
+            <V3StepChart stepCounts={stats.stepCounts} />
           </div>
         )}
 
@@ -719,12 +719,10 @@ export default function AdminPage() {
 
 function StepLineChart({
   entries,
-  starts,
   selected,
   onSelect,
 }: {
   entries: { step: number; count: number }[];
-  starts: number;
   selected: { step: number; count: number } | null;
   onSelect: (entry: { step: number; count: number } | null) => void;
 }) {
@@ -738,9 +736,8 @@ function StepLineChart({
   const innerH = H - PT - PB;
   const total = entries.length;
 
-  const pcts = entries.map((e) =>
-    starts > 0 ? Math.min(100, (e.count / starts) * 100) : 0
-  );
+  const q1Count = Math.max(entries[0]?.count ?? 0, 1);
+  const pcts = entries.map((e) => Math.min(100, (e.count / q1Count) * 100));
 
   const xOf = (i: number) =>
     PL + (total > 1 ? (i / (total - 1)) * innerW : innerW / 2);
@@ -803,13 +800,14 @@ function StepLineChart({
   );
 }
 
-function V3StepChart({ stepCounts, starts }: { stepCounts: Record<string, number>; starts: number }) {
+function V3StepChart({ stepCounts }: { stepCounts: Record<string, number> }) {
   const [selected, setSelected] = useState<{ step: number; count: number } | null>(null);
 
   const entries = Array.from({ length: 21 }, (_, i) => ({
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
+  const q1Count = Math.max(entries[0].count, 1);
 
   return (
     <>
@@ -820,19 +818,19 @@ function V3StepChart({ stepCounts, starts }: { stepCounts: Record<string, number
             <p className="text-2xl font-extrabold">{selected.count.toLocaleString()}<span className="text-sm font-semibold ml-1">人通過</span></p>
           </div>
           <div className="text-right">
-            <p className="text-xs font-bold text-slate-400 mb-0.5">診断開始比</p>
+            <p className="text-xs font-bold text-slate-400 mb-0.5">Q1比</p>
             <p className={`text-2xl font-extrabold ${
-              starts > 0 && selected.count / starts >= 0.7 ? 'text-teal-400'
-              : starts > 0 && selected.count / starts >= 0.5 ? 'text-amber-400'
+              selected.count / q1Count >= 0.7 ? 'text-teal-400'
+              : selected.count / q1Count >= 0.5 ? 'text-amber-400'
               : 'text-red-400'
             }`}>
-              {starts > 0 ? Math.round((selected.count / starts) * 100) : '—'}<span className="text-sm font-semibold ml-0.5">%</span>
+              {Math.round((selected.count / q1Count) * 100)}<span className="text-sm font-semibold ml-0.5">%</span>
             </p>
-            <p className="text-xs text-slate-400">開始 {starts.toLocaleString()}人</p>
+            <p className="text-xs text-slate-400">Q1 {entries[0].count.toLocaleString()}人</p>
           </div>
         </div>
       )}
-      <StepLineChart entries={entries} starts={starts} selected={selected} onSelect={setSelected} />
+      <StepLineChart entries={entries} selected={selected} onSelect={setSelected} />
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
@@ -853,6 +851,7 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
+  const q1Count = Math.max(entries[0].count, 1);
 
   return (
     <>
@@ -863,19 +862,19 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
             <p className="text-2xl font-extrabold">{selected.count.toLocaleString()}<span className="text-sm font-semibold ml-1">人通過</span></p>
           </div>
           <div className="text-right">
-            <p className="text-xs font-bold text-slate-400 mb-0.5">診断開始比</p>
+            <p className="text-xs font-bold text-slate-400 mb-0.5">Q1比</p>
             <p className={`text-2xl font-extrabold ${
-              starts > 0 && selected.count / starts >= 0.7 ? 'text-teal-400'
-              : starts > 0 && selected.count / starts >= 0.5 ? 'text-amber-400'
+              selected.count / q1Count >= 0.7 ? 'text-teal-400'
+              : selected.count / q1Count >= 0.5 ? 'text-amber-400'
               : 'text-red-400'
             }`}>
-              {starts > 0 ? Math.round((selected.count / starts) * 100) : '—'}<span className="text-sm font-semibold ml-0.5">%</span>
+              {Math.round((selected.count / q1Count) * 100)}<span className="text-sm font-semibold ml-0.5">%</span>
             </p>
-            <p className="text-xs text-slate-400">開始 {starts.toLocaleString()}人</p>
+            <p className="text-xs text-slate-400">Q1 {entries[0].count.toLocaleString()}人 / 開始 {starts.toLocaleString()}人</p>
           </div>
         </div>
       )}
-      <StepLineChart entries={entries} starts={starts} selected={selected} onSelect={setSelected} />
+      <StepLineChart entries={entries} selected={selected} onSelect={setSelected} />
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
           <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
