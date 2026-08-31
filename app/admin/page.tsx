@@ -717,6 +717,92 @@ export default function AdminPage() {
   );
 }
 
+function StepLineChart({
+  entries,
+  starts,
+  selected,
+  onSelect,
+}: {
+  entries: { step: number; count: number }[];
+  starts: number;
+  selected: { step: number; count: number } | null;
+  onSelect: (entry: { step: number; count: number } | null) => void;
+}) {
+  const W = 560;
+  const H = 160;
+  const PL = 28;
+  const PR = 8;
+  const PT = 12;
+  const PB = 20;
+  const innerW = W - PL - PR;
+  const innerH = H - PT - PB;
+  const total = entries.length;
+
+  const pcts = entries.map((e) =>
+    starts > 0 ? Math.min(100, (e.count / starts) * 100) : 0
+  );
+
+  const xOf = (i: number) =>
+    PL + (total > 1 ? (i / (total - 1)) * innerW : innerW / 2);
+  const yOf = (pct: number) => PT + (1 - pct / 100) * innerH;
+
+  const polyline = entries.map((_, i) => `${xOf(i)},${yOf(pcts[i])}`).join(' ');
+
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ display: 'block' }}>
+      {[0, 50, 70, 100].map((pct) => (
+        <g key={pct}>
+          <line
+            x1={PL} y1={yOf(pct)} x2={W - PR} y2={yOf(pct)}
+            stroke={pct === 70 ? '#fbbf24' : '#e2e8f0'}
+            strokeWidth={pct === 70 ? 1.5 : 0.75}
+            strokeDasharray={pct === 70 ? '5,3' : undefined}
+          />
+          <text x={PL - 4} y={yOf(pct) + 3.5} textAnchor="end" fontSize={8} fill="#94a3b8">
+            {pct}%
+          </text>
+        </g>
+      ))}
+      <polyline
+        points={polyline}
+        fill="none"
+        stroke="#2dd4bf"
+        strokeWidth={2}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      {entries.map((e, i) => {
+        const cx = xOf(i);
+        const cy = yOf(pcts[i]);
+        const isSelected = selected?.step === e.step;
+        const isLow = pcts[i] < 70 && e.count > 0;
+        return (
+          <circle
+            key={e.step}
+            cx={cx}
+            cy={cy}
+            r={isSelected ? 6 : 4}
+            fill={isLow ? '#f87171' : '#2dd4bf'}
+            stroke="white"
+            strokeWidth={2}
+            style={{ cursor: 'pointer' }}
+            onClick={() => onSelect(isSelected ? null : { step: e.step, count: e.count })}
+          />
+        );
+      })}
+      {entries.map((e, i) => {
+        const show = total <= 21 ? true : i === 0 || e.step % 10 === 0 || i === total - 1;
+        if (!show) return null;
+        return (
+          <text key={e.step} x={xOf(i)} y={H - 4} textAnchor="middle" fontSize={9} fill="#94a3b8">
+            {e.step}
+          </text>
+        );
+      })}
+    </svg>
+  );
+}
+
 function V3StepChart({ stepCounts, starts }: { stepCounts: Record<string, number>; starts: number }) {
   const [selected, setSelected] = useState<{ step: number; count: number } | null>(null);
 
@@ -724,7 +810,6 @@ function V3StepChart({ stepCounts, starts }: { stepCounts: Record<string, number
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
-  const maxCount = Math.max(...entries.map((e) => e.count), 1);
 
   return (
     <>
@@ -747,39 +832,15 @@ function V3StepChart({ stepCounts, starts }: { stepCounts: Record<string, number
           </div>
         </div>
       )}
-
-      <div className="flex items-end gap-1" style={{ height: '200px' }}>
-        {entries.map(({ step, count }) => {
-          const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-          const isLow = pct < 70 && count > 0;
-          const isSelected = selected?.step === step;
-          return (
-            <div
-              key={step}
-              className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full cursor-pointer"
-              onClick={() => setSelected((prev) => (prev?.step === step ? null : { step, count }))}
-            >
-              <div
-                className={`w-full rounded-t-sm transition-all duration-300 ${
-                  isSelected ? 'opacity-100 ring-1 ring-white' : 'opacity-90'
-                } ${isLow ? 'bg-red-400' : 'bg-teal-400'}`}
-                style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
-              />
-              <span className={`leading-none font-medium text-slate-500 ${isSelected ? 'text-slate-800' : ''}`} style={{ fontSize: '10px' }}>
-                {step}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <StepLineChart entries={entries} starts={starts} selected={selected} onSelect={setSelected} />
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
+          <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満（離脱疑い）
+          <span className="w-3 h-3 rounded-full bg-red-400 inline-block" /> 70%未満（離脱疑い）
         </span>
-        <span className="text-xs text-slate-400 ml-auto">バーをタップで詳細表示</span>
+        <span className="text-xs text-slate-400 ml-auto">点をタップで詳細表示</span>
       </div>
     </>
   );
@@ -792,15 +853,9 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
     step: i + 1,
     count: stepCounts[String(i + 1)] ?? 0,
   }));
-  const maxCount = Math.max(...entries.map((e) => e.count), 1);
-
-  const handleClick = (step: number, count: number) => {
-    setSelected((prev) => (prev?.step === step ? null : { step, count }));
-  };
 
   return (
     <>
-      {/* 選択中バーの詳細パネル */}
       {selected && (
         <div className="mb-4 bg-slate-800 text-white rounded-xl px-5 py-4 flex items-center justify-between">
           <div>
@@ -820,42 +875,15 @@ function V4StepChart({ stepCounts, total, starts }: { stepCounts: Record<string,
           </div>
         </div>
       )}
-
-      <div className="flex items-end gap-[2px]" style={{ height: '200px' }}>
-        {entries.map(({ step, count }) => {
-          const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
-          const isLow = pct < 70 && count > 0;
-          const isSelected = selected?.step === step;
-          return (
-            <div
-              key={step}
-              className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full relative cursor-pointer"
-              onClick={() => handleClick(step, count)}
-            >
-              <div
-                className={`w-full rounded-t-sm transition-all duration-300 ${
-                  isSelected ? 'opacity-100 ring-1 ring-white' : 'opacity-90'
-                } ${isLow ? 'bg-red-400' : 'bg-teal-400'}`}
-                style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
-              />
-              <span
-                className={`leading-none font-medium ${isSelected ? 'text-slate-800' : 'text-slate-500'} ${step % 10 === 0 || step === 1 || step === total ? '' : 'invisible'}`}
-                style={{ fontSize: '9px' }}
-              >
-                {step}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+      <StepLineChart entries={entries} starts={starts} selected={selected} onSelect={setSelected} />
       <div className="mt-4 flex gap-6 text-sm text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
+          <span className="w-3 h-3 rounded-full bg-teal-400 inline-block" /> 70%以上
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満（離脱疑い）
+          <span className="w-3 h-3 rounded-full bg-red-400 inline-block" /> 70%未満（離脱疑い）
         </span>
-        <span className="text-xs text-slate-400 ml-auto">バーをタップで詳細表示</span>
+        <span className="text-xs text-slate-400 ml-auto">点をタップで詳細表示</span>
       </div>
     </>
   );
