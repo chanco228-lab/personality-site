@@ -578,6 +578,17 @@ export default function AdminPage() {
           </div>
         )}
 
+        {/* 設問ごとの通過者数 */}
+        {stats && (
+          <div className="bg-white rounded-2xl shadow-sm p-6">
+            <h2 className="text-base font-bold text-slate-800 mb-1">設問ごとの通過者数（21問）</h2>
+            <p className="text-sm text-slate-500 mb-6">
+              最多比70%未満の設問（赤）で離脱が多い可能性があります
+            </p>
+            <V3StepChart stepCounts={stats.stepCounts} starts={stats.starts} />
+          </div>
+        )}
+
         {/* 設問別 離脱分析 */}
         {stats && (
           <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -703,6 +714,74 @@ export default function AdminPage() {
 
       </main>
     </div>
+  );
+}
+
+function V3StepChart({ stepCounts, starts }: { stepCounts: Record<string, number>; starts: number }) {
+  const [selected, setSelected] = useState<{ step: number; count: number } | null>(null);
+
+  const entries = Array.from({ length: 21 }, (_, i) => ({
+    step: i + 1,
+    count: stepCounts[String(i + 1)] ?? 0,
+  }));
+  const maxCount = Math.max(...entries.map((e) => e.count), 1);
+
+  return (
+    <>
+      {selected && (
+        <div className="mb-4 bg-slate-800 text-white rounded-xl px-5 py-4 flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold text-slate-400 mb-0.5">Q{selected.step}問目</p>
+            <p className="text-2xl font-extrabold">{selected.count.toLocaleString()}<span className="text-sm font-semibold ml-1">人通過</span></p>
+          </div>
+          <div className="text-right">
+            <p className="text-xs font-bold text-slate-400 mb-0.5">診断開始比</p>
+            <p className={`text-2xl font-extrabold ${
+              starts > 0 && selected.count / starts >= 0.7 ? 'text-teal-400'
+              : starts > 0 && selected.count / starts >= 0.5 ? 'text-amber-400'
+              : 'text-red-400'
+            }`}>
+              {starts > 0 ? Math.round((selected.count / starts) * 100) : '—'}<span className="text-sm font-semibold ml-0.5">%</span>
+            </p>
+            <p className="text-xs text-slate-400">開始 {starts.toLocaleString()}人</p>
+          </div>
+        </div>
+      )}
+
+      <div className="flex items-end gap-1" style={{ height: '200px' }}>
+        {entries.map(({ step, count }) => {
+          const pct = maxCount > 0 ? (count / maxCount) * 100 : 0;
+          const isLow = pct < 70 && count > 0;
+          const isSelected = selected?.step === step;
+          return (
+            <div
+              key={step}
+              className="flex-1 flex flex-col items-center justify-end gap-0.5 h-full cursor-pointer"
+              onClick={() => setSelected((prev) => (prev?.step === step ? null : { step, count }))}
+            >
+              <div
+                className={`w-full rounded-t-sm transition-all duration-300 ${
+                  isSelected ? 'opacity-100 ring-1 ring-white' : 'opacity-90'
+                } ${isLow ? 'bg-red-400' : 'bg-teal-400'}`}
+                style={{ height: `${pct}%`, minHeight: count > 0 ? '4px' : '0' }}
+              />
+              <span className={`leading-none font-medium text-slate-500 ${isSelected ? 'text-slate-800' : ''}`} style={{ fontSize: '10px' }}>
+                {step}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-4 flex gap-6 text-sm text-slate-600">
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-teal-400 inline-block" /> 通常
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-3 h-3 rounded-sm bg-red-400 inline-block" /> 最多比70%未満（離脱疑い）
+        </span>
+        <span className="text-xs text-slate-400 ml-auto">バーをタップで詳細表示</span>
+      </div>
+    </>
   );
 }
 
