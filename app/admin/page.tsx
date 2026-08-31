@@ -59,7 +59,7 @@ export default function AdminPage() {
   const [password, setPassword] = useState('');
   const [authed, setAuthed] = useState(false);
   const [authError, setAuthError] = useState(false);
-  const [days, setDays] = useState<7 | 30>(7);
+  const [days, setDays] = useState<7 | 30 | 60>(7);
   const [version, setVersion] = useState<'v3' | 'v4'>('v3');
   const [tab, setTab] = useState<'stats' | 'quality'>('stats');
   const [stats, setStats] = useState<Stats | null>(null);
@@ -241,7 +241,7 @@ export default function AdminPage() {
             {loading ? '更新中...' : '更新'}
           </button>
           <div className="flex gap-1.5">
-            {([7, 30] as const).map((d) => (
+            {([7, 30, 60] as const).map((d) => (
               <button
                 key={d}
                 onClick={() => setDays(d)}
